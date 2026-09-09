@@ -133,6 +133,27 @@
     .sync-status{font-size:10.5px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;}
     .sync-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;}
     .file-input{display:none;}
+    .cloud-panel{border:1px solid #c7d7e7;border-radius:11px;background:linear-gradient(145deg,#f7fbff,#eef6fc);padding:15px 16px;}
+    .cloud-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+    .cloud-title{font-size:14px;font-weight:800;color:#0b3b67;display:flex;align-items:center;gap:7px;}
+    .cloud-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;}
+    .cloud-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;}
+    .cloud-metric{background:#fff;border:1px solid #d5e1ec;border-radius:8px;padding:10px 11px;}
+    .cloud-metric-label{font-size:10.5px;color:var(--muted);margin-bottom:4px;}
+    .cloud-metric-value{font-size:17px;font-weight:800;color:#0f172a;}
+    .cloud-metric-note{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.35;}
+    .cloud-bar{height:6px;background:#e4edf5;border-radius:5px;overflow:hidden;margin-top:7px;}
+    .cloud-bar-fill{height:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);border-radius:5px;}
+    .cloud-routes{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:12px;}
+    .cloud-list{background:#fff;border:1px solid #d5e1ec;border-radius:8px;padding:11px 12px;}
+    .cloud-list-title{font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px;}
+    .cloud-route-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border-soft);padding:7px 0;font-size:11px;}
+    .cloud-route-row:first-of-type{border-top:0;}
+    .cloud-depots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+    .cloud-depot{border:1px solid #d5e1ec;border-radius:7px;background:#fff;padding:8px;font-size:10px;}
+    .cloud-depot.live{border-color:var(--green-bd);background:var(--green-dim);}
+    .cloud-depot b{display:block;font-size:10.5px;color:#0f172a;margin-bottom:3px;}
+    @media(max-width:700px){.cloud-routes{grid-template-columns:1fr;}.cloud-depots{grid-template-columns:repeat(2,1fr);}}
   .checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:5px;}
   .checklist-item{display:flex;align-items:center;gap:5px;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text);cursor:pointer;text-align:left;font-family:inherit;width:100%;}
   .checklist-item:hover{background:#eef1f5;}
@@ -352,11 +373,12 @@ var result = null;
 var daySummary = null;
 var STORAGE_KEY = 'ashok-leyland-depot-state-v1';
 var lastSavedAt = null;
+var cloudAnalysisAt = null;
 
 function saveCloudReadyState(){
   var state = {fleet:fleet, drivers:drivers, checklistState:checklistState, defectLog:defectLog, defectSeq:defectSeq,
     unwantedChargeEvents:unwantedChargeEvents, unwantedChargesByRoute:unwantedChargesByRoute, costPerUnplannedCharge:costPerUnplannedCharge,
-    slotId:slotId, bestBusRouteId:bestBusRouteId};
+    slotId:slotId, bestBusRouteId:bestBusRouteId, cloudAnalysisAt:cloudAnalysisAt};
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); lastSavedAt = new Date(); } catch(e) {}
 }
 function restoreCloudReadyState(){
@@ -365,7 +387,7 @@ function restoreCloudReadyState(){
     if(!saved || !saved.fleet || !saved.drivers) return false;
     fleet=saved.fleet; drivers=saved.drivers; checklistState=saved.checklistState||{}; defectLog=saved.defectLog||[]; defectSeq=saved.defectSeq||1;
     unwantedChargeEvents=saved.unwantedChargeEvents||0; unwantedChargesByRoute=saved.unwantedChargesByRoute||{}; costPerUnplannedCharge=saved.costPerUnplannedCharge||500;
-    slotId=saved.slotId||'t2'; bestBusRouteId=saved.bestBusRouteId||null; lastSavedAt=new Date(); return true;
+    slotId=saved.slotId||'t2'; bestBusRouteId=saved.bestBusRouteId||null; cloudAnalysisAt=saved.cloudAnalysisAt ? new Date(saved.cloudAnalysisAt) : null; lastSavedAt=new Date(); return true;
   } catch(e) { return false; }
 }
 function exportCloudBackup(){
@@ -378,6 +400,11 @@ function importCloudBackup(file){
   if(!file) return; var reader=new FileReader();
   reader.onload=function(){ try { var state=JSON.parse(reader.result); localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); restoreCloudReadyState(); render(); } catch(e) { alert('Backup file could not be loaded.'); } };
   reader.readAsText(file);
+}
+function runCloudAnalysis(){
+  cloudAnalysisAt = new Date();
+  logEvent('Cloud analytics snapshot refreshed - fleet, route demand, defects and driver capacity analyzed');
+  render();
 }
 
 var liveOn = false, liveTimer = null, lastSync = null, feedLog = [];
@@ -507,7 +534,7 @@ function runFullDay(){
 function render(){
   saveCloudReadyState();
   var app = document.getElementById('app');
-  app.innerHTML = renderHeader() + renderOpsBrief() + renderActionCenter() + renderKpis() + renderLiveSection() + renderSlotsSection() + renderShedChecklist() + renderDefectDashboard() + renderTablesSection() + renderBestBusFinder() + renderDepotAvailabilityTable() + renderPlanningSection() + renderChartAndRun() + renderResult() + renderTripMonitor();
+  app.innerHTML = renderHeader() + renderCloudAnalytics() + renderOpsBrief() + renderActionCenter() + renderKpis() + renderLiveSection() + renderSlotsSection() + renderShedChecklist() + renderDefectDashboard() + renderTablesSection() + renderBestBusFinder() + renderDepotAvailabilityTable() + renderPlanningSection() + renderChartAndRun() + renderResult() + renderTripMonitor();
   bindEvents();
 }
 
@@ -533,6 +560,35 @@ function renderProjectContext(){
     '<div class="process-flow"><div class="process-step">Bus charging<br>98-100% target</div><div class="process-arrow">&rarr;</div><div class="process-step">Interior cleaning</div><div class="process-arrow">&rarr;</div><div class="process-step">Exterior cleaning</div><div class="process-arrow">&rarr;</div><div class="process-step">AI schedule allocation</div><div class="process-arrow">&rarr;</div><div class="process-step">Driver assignment<br>and dispatch</div></div>' +
     '<div class="section" style="margin:0;padding:14px 16px;border-top:1px solid var(--border-soft);"><div class="section-label" style="margin-bottom:9px;">'+icon('grid')+'7-depot defect-management rollout</div><div class="depot-network">'+depotCards+'</div></div>' +
   '</div>';
+}
+
+function renderCloudAnalytics(){
+  var eligible = fleet.filter(isEligible).length;
+  var activeTrips = Object.keys(trips).filter(function(id){return !trips[id].done;}).length;
+  var openDefects = defectLog.filter(function(d){return d.status==='Open';}).length;
+  var availableDrivers = drivers.filter(function(d){return d.status==='Available';}).length;
+  var syncAge = lastSync ? Math.max(0, Math.round((Date.now()-lastSync.getTime())/1000))+'s ago' : 'waiting for feed';
+  var confidence = Math.round((eligible/fleet.length*55)+(availableDrivers/drivers.length*25)+((fleet.length-openDefects)/fleet.length*20));
+  var demand = routes.slice().sort(function(a,b){return b.schedules-a.schedules;}).slice(0,4);
+  var demandRows = demand.map(function(r){
+    var pressure = r.schedules>=25 ? 'High' : r.schedules>=15 ? 'Medium' : 'Normal';
+    return '<div class="cloud-route-row"><span><b>'+r.code+'</b> &middot; '+r.name+'</span><span class="pill '+pillClass(pressure==='High'?'Complex':pressure==='Medium'?'Moderate':'Simple')+'">'+pressure+' demand</span></div>';
+  }).join('');
+  var depots = ['Chandapura','Central','North','South','East','West','Airport'].map(function(name,index){
+    return '<div class="cloud-depot '+(index===0?'live':'')+'"><b>'+name+'</b><span>'+ (index===0 ? eligible+' ready / '+fleet.length+' buses' : 'Pilot queued')+'</span></div>';
+  }).join('');
+  var analyzed = cloudAnalysisAt ? pad(cloudAnalysisAt.getHours())+':'+pad(cloudAnalysisAt.getMinutes()) : 'not run';
+  return '<div class="section"><div class="cloud-panel">' +
+    '<div class="cloud-head"><div><div class="cloud-title">'+icon('grid')+'Cloud operations intelligence</div><div class="cloud-sub">Cloud-ready analytics layer for telemetry, schedule demand, defect trends, and depot rollout. Current inputs are simulated locally until production APIs are connected.</div></div><button class="btn-secondary" id="cloudAnalyzeBtn">'+icon('spark')+' Refresh AI analysis</button></div>' +
+    '<div class="cloud-grid">' +
+      '<div class="cloud-metric"><div class="cloud-metric-label">Telemetry connection</div><div class="cloud-metric-value">'+(liveOn?'Online':'Standby')+'</div><div class="cloud-metric-note">Last signal '+syncAge+'</div></div>' +
+      '<div class="cloud-metric"><div class="cloud-metric-label">AI model confidence</div><div class="cloud-metric-value">'+confidence+'%</div><div class="cloud-bar"><div class="cloud-bar-fill" style="width:'+confidence+'%;"></div></div></div>' +
+      '<div class="cloud-metric"><div class="cloud-metric-label">Active cloud trips</div><div class="cloud-metric-value">'+activeTrips+'</div><div class="cloud-metric-note">Trip progress and battery drain monitored</div></div>' +
+      '<div class="cloud-metric"><div class="cloud-metric-label">Open defect signals</div><div class="cloud-metric-value">'+openDefects+'</div><div class="cloud-metric-note">Prioritized for corrective action</div></div>' +
+      '<div class="cloud-metric"><div class="cloud-metric-label">Last AI analysis</div><div class="cloud-metric-value">'+analyzed+'</div><div class="cloud-metric-note">Refresh after major fleet changes</div></div>' +
+    '</div>' +
+    '<div class="cloud-routes"><div class="cloud-list"><div class="cloud-list-title">Schedule demand forecast</div>'+demandRows+'</div><div class="cloud-list"><div class="cloud-list-title">Multi-depot rollout status</div><div class="cloud-depots">'+depots+'</div></div></div>' +
+  '</div></div>';
 }
 
 function renderOpsBrief(){
@@ -1053,6 +1109,8 @@ function renderFootnote(){
 
 function bindEvents(){
   document.getElementById('resetBtn').onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
+  var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
+  if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = runCloudAnalysis;
   var exportBtn = document.getElementById('exportBtn');
   if(exportBtn) exportBtn.onclick = exportCloudBackup;
   var importBtn = document.getElementById('importBtn');
