@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Bus Scheduling - Chandapura Depot</title>
+<style>
+  :root{
+    --bg:#f3f5f8; --panel:#ffffff; --panel-soft:#f7f9fb; --border:#e1e5eb; --border-soft:#edf1f5;
+    --text:#182233; --muted:#66748a; --accent:#0533d5; --accent-2:#9333ea; --accent-dim:#ecebfd;
+    --green:#059669; --green-dim:#e7f6ef; --green-bd:#a7d9c3;
+    --amber:#b45309; --amber-dim:#fef3e2; --amber-bd:#f0d19b;
+    --red:#dc2626; --red-dim:#fdecec; --red-bd:#f3b8b8;
+    --slate:#6b7690;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:linear-gradient(180deg,#ffffff,var(--bg) 340px);color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  .wrap{max-width:1200px;margin:0 auto;padding:30px 20px 60px;}
+  .icon{width:16px;height:16px;display:inline-block;vertical-align:-3px;flex-shrink:0;}
+  .header{position:relative;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border);padding-bottom:18px;}
+  .header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2) 60%,transparent);}
+  .headline{display:flex;gap:13px;align-items:center;}
+  .badge-icon{width:40px;height:40px;border-radius:10px;background:var(--accent-dim);border:1px solid #c9c6f7;display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;}
+  .badge-icon .icon{width:20px;height:20px;}
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-0.01em;color:#0f172a;}
+  .sub{font-size:12.5px;color:var(--muted);margin:3px 0 0;}
+  .btn{background:#ffffff;border:1px solid var(--border);color:var(--slate);border-radius:7px;padding:7px 13px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:background .15s;}
+  .btn:hover{background:#f1f4f8;}
+  .btn-live{border-color:#bfe3d3;color:var(--green);}
+  .btn-stop{border-color:#f3c6c6;color:var(--red);}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;color:#fff;font-weight:700;padding:11px 20px;border-radius:9px;font-size:14px;cursor:pointer;box-shadow:0 6px 16px -4px rgba(5,51,213,.35);}
+  .btn-primary:hover{opacity:.92;}
+  .btn-secondary{background:var(--accent-dim);border:1px solid #c9c6f7;color:var(--accent);border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-secondary:hover{background:#e1def9;}
+  .section{padding-top:22px;margin-top:22px;border-top:1px solid var(--border);}
+  .section-label{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:#0f172a;}
+  .kpis{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:22px;background:var(--panel-soft);}
+  .kpi{flex:1 1 130px;padding:13px 15px;border-left:1px solid var(--border);}
+  .kpi:first-child{border-left:none;}
+  .kpi-label{font-size:10.5px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-bottom:5px;}
+  .kpi-value{font-size:19px;font-weight:700;letter-spacing:-.01em;color:#0f172a;}
+  .slots{display:flex;flex-wrap:wrap;gap:8px;}
+  .slot{border:1px solid var(--border);border-radius:8px;padding:8px 13px;cursor:pointer;color:var(--slate);background:#fff;font-family:inherit;text-align:left;transition:background .15s;}
+  .slot:hover{background:#f4f7fb;}
+  .slot.active{background:var(--accent-dim);border-color:#b7b2f2;color:var(--accent);}
+  .slot .t1{font-size:13px;font-weight:600;}
+  .slot .t2{font-size:11px;opacity:.75;}
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid2{grid-template-columns:1fr 1fr;}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05);}
+  .panel-head{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#0f172a;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:7px 9px;position:sticky;top:0;background:#fafbfd;}
+  td{padding:5px 9px;border-top:1px solid var(--border-soft);}
+  .tablewrap{max-height:330px;overflow-y:auto;}
+  .row-dim{opacity:.4;}
+  input[type=number]{width:48px;background:#fff;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 5px;font-size:12px;}
+  input.wide{width:62px;}
+  .pill{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;border:1px solid transparent;}
+  .pill-a{background:var(--green-dim);color:var(--green);border-color:var(--green-bd);}
+  .pill-b{background:#e5f2fb;color:#0369a1;border-color:#a9d8f0;}
+  .pill-c{background:#f1f3f6;color:var(--slate);border-color:#dde1e8;}
+  .pill-simple{background:var(--green-dim);color:var(--green);border-color:var(--green-bd);}
+  .pill-moderate{background:var(--amber-dim);color:var(--amber);border-color:var(--amber-bd);}
+  .pill-complex{background:var(--red-dim);color:var(--red);border-color:var(--red-bd);}
+  .pill-senior{background:var(--accent-dim);color:var(--accent);border-color:#c9c6f7;}
+  .pill-standard{background:#f1f3f6;color:var(--slate);border-color:#dde1e8;}
+  .pill-avail{background:var(--green-dim);color:var(--green);border-color:var(--green-bd);}
+  .pill-offduty{background:#f1f3f6;color:var(--slate);border-color:#dde1e8;}
+  .pill-leave{background:var(--amber-dim);color:var(--amber);border-color:var(--amber-bd);}
+  .iconbtn{background:none;border:none;cursor:pointer;color:inherit;padding:0;}
+  .chartrow{display:grid;grid-template-columns:1fr;gap:20px;}
+  @media(min-width:960px){.chartrow{grid-template-columns:1.6fr 1fr;}}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;}
+  .bar-label{width:150px;color:var(--muted);flex-shrink:0;}
+  .bar-track{flex:1;background:#eef1f5;border-radius:5px;height:13px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:5px;transition:width .5s ease;}
+  .bar-value{width:20px;text-align:right;flex-shrink:0;}
+  .runbox{border:1px solid #d4d0fa;background:linear-gradient(160deg,#eef0ff,#f6effc);border-radius:11px;padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;justify-content:center;}
+  .runbox .icon{width:22px;height:22px;color:var(--accent);}
+  .assign-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px;}
+  select{background:#fff;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;}
+  .gapbox{border:1px solid var(--red-bd);background:var(--red-dim);border-radius:9px;padding:12px;margin-top:12px;}
+  .gapbox-title{color:var(--red);font-size:13px;font-weight:600;display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+  .gap-item{font-size:12px;color:#7a4040;padding-left:22px;margin-bottom:3px;}
+  .footnote{font-size:11px;color:#8a94a6;margin-top:22px;line-height:1.65;}
+  .mono{font-family:monospace;}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;animation:pulse-dot 1.6s infinite;}
+  .live-dot.off{background:#c7ccd6;animation:none;}
+  .live-dot.small{width:6px;height:6px;}
+  @keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(5,150,105,.4);}70%{box-shadow:0 0 0 6px rgba(5,150,105,0);}100%{box-shadow:0 0 0 0 rgba(5,150,105,0);}}
+  .feedbox{background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:9px;padding:9px 13px;font-family:monospace;font-size:11.5px;max-height:140px;overflow-y:auto;color:#556173;}
+  .feed-item{padding:3px 0;border-bottom:1px solid var(--border-soft);}
+  .feed-item:last-child{border-bottom:none;}
+  .feed-item.muted{color:var(--muted);font-style:italic;}
+  .summarybox{color:var(--muted);font-size:12px;}
+  .ops-brief{margin-top:22px;border:1px solid #cfd8e8;border-radius:11px;background:linear-gradient(135deg,#f8fbff,#f4f7fc);padding:16px;}
+  .ops-brief-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .ops-brief-title{font-size:14px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:7px;}
+  .ops-brief-copy{font-size:11.5px;color:var(--muted);margin-top:4px;max-width:720px;line-height:1.45;}
+  .ops-score{display:flex;align-items:center;gap:8px;color:var(--accent);font-size:12px;font-weight:700;white-space:nowrap;}
+  .ops-score-track{width:92px;height:8px;border-radius:5px;background:#e2e8f0;overflow:hidden;}
+  .ops-score-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--green));}
+  .ops-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;}
+  .ops-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 11px;}
+  .ops-card-label{font-size:10.5px;color:var(--muted);margin-bottom:4px;}
+  .ops-card-value{font-size:17px;font-weight:700;color:#0f172a;}
+  .ops-card-note{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.35;}
+    .action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
+    .action-card{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;background:#fff;padding:11px 12px;}
+    .action-card.critical{border-left-color:var(--red);}
+    .action-card.warning{border-left-color:var(--amber);}
+    .action-card-title{font-size:11px;font-weight:700;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+    .action-card-text{font-size:11px;color:var(--muted);line-height:1.4;}
+    .match-score{font-size:10.5px;font-weight:700;color:var(--accent);white-space:nowrap;}
+    .project-context{margin-top:22px;border:1px solid #c6d8e8;border-radius:11px;background:#fff;overflow:hidden;}
+    .project-context-head{padding:14px 16px;background:linear-gradient(100deg,#dff1ff,#f5fbff);border-bottom:1px solid #c6d8e8;}
+    .project-title{font-size:16px;font-weight:800;color:#0b3b67;}
+    .project-context-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+    .project-context-copy{padding:14px 16px;font-size:12px;color:#52657b;line-height:1.55;}
+    .project-context-copy strong{display:block;color:#0f172a;font-size:12.5px;margin-bottom:5px;}
+    .project-objectives{margin:5px 0 0;padding-left:18px;}
+    .project-objectives li{margin:3px 0;}
+    .process-flow{display:flex;align-items:stretch;gap:6px;padding:12px 16px;background:#f8fbfd;border-top:1px solid var(--border-soft);overflow-x:auto;}
+    .process-step{min-width:145px;flex:1;border:1px solid #b9d2e4;border-radius:8px;padding:9px 10px;background:#fff;color:#0b3b67;font-size:11.5px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;}
+    .process-arrow{display:flex;align-items:center;color:var(--accent);font-weight:800;}
+    .depot-network{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;}
+    .depot-card{border:1px solid var(--border);border-radius:8px;background:#fff;padding:10px 11px;}
+    .depot-card.live{border-color:var(--green-bd);background:var(--green-dim);}
+    .depot-card-name{font-size:11.5px;font-weight:700;color:#0f172a;}
+    .depot-card-meta{font-size:10.5px;color:var(--muted);margin-top:4px;}
+    .data-hub{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;}
+    .sync-status{font-size:10.5px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;}
+    .sync-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;}
+    .file-input{display:none;}
+  .checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:5px;}
+  .checklist-item{display:flex;align-items:center;gap:5px;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text);cursor:pointer;text-align:left;font-family:inherit;width:100%;}
+  .checklist-item:hover{background:#eef1f5;}
+  .checklist-item.bad{background:var(--red-dim);border-color:var(--red-bd);color:#8a3030;}
+  .checklist-item .icon{width:13px;height:13px;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+var TIME_SLOTS = [
+  {id:'t1', label:'05:00-07:00', cat:'Normal'},
+  {id:'t2', label:'07:00-10:00', cat:'Extreme Peak'},
+  {id:'t3', label:'10:00-16:00', cat:'Peak'},
+  {id:'t4', label:'16:00-20:00', cat:'Extreme Peak'},
+  {id:'t5', label:'20:00-23:00', cat:'Peak'}
+];
+var MATCH_TABLE = {
+  Simple:   {Normal:['A','B','C'], Peak:['A','B'], 'Extreme Peak':['A','B']},
+  Moderate: {Normal:['A','B'],     Peak:['A'],     'Extreme Peak':['A']},
+  Complex:  {Normal:['A'],         Peak:['A'],     'Extreme Peak':['A']}
+};
+var DRIVER_MATCH = { Simple:['Senior','Standard'], Moderate:['Senior','Standard'], Complex:['Senior'] };
+var CAT_RANK = {A:2,B:1,C:0};
+var DRV_RANK = {Standard:0, Senior:1};
+var RATED_RANGE = 155;
+var SERVICE_INTERVAL_KM = 10000; // real transit EV programs range ~9,650km (Pioneer Valley Transit, US BEB fleet) to 22,000km (Quebec PMP rule for urban transit buses) - 10,000km is a defensible middle default, edit to match your depot's actual contract
+var RESERVE_SOC = 20;  // your number: at/below this SOC a bus must go charge and drops out of the eligible pool, for any route
+var WARN_SOC = 35;     // my own advisory band above the floor - still eligible, just flagged "charge soon" so it isn't sent on a long leg next; edit freely
+
+function rangeCategory(km){ if(km>120) return 'A'; if(km>=100) return 'B'; return 'C'; }
+function routeCategory(req){ if(req<=108) return 'Simple'; if(req<=125) return 'Moderate'; return 'Complex'; }
+function maxRange(b){ return Math.round(RATED_RANGE * b.soh/100); }
+function busRange(b){ return Math.round(b.soc/100*maxRange(b)); }
+function needsCharge(b){ return b.soc<=RESERVE_SOC; }
+function chargeSoonFlag(b){ return b.soc>RESERVE_SOC && b.soc<=WARN_SOC; }
+function minutesToCharge(fromSoc, toSoc){
+  // Dual-gun DC fast-charge curve for this platform: roughly 0-80% in about an hour, then the last 20% tapers to another hour-plus - from Switch Mobility's own published charge times, not your files. Edit the two constants below if your depot's chargers run differently.
+  if(toSoc<=fromSoc) return 0;
+  var mins = 0;
+  if(fromSoc<80){ mins += (Math.min(toSoc,80)-fromSoc)*(60/80); }
+  if(toSoc>80){ mins += (toSoc-Math.max(fromSoc,80))*(90/20); }
+  return Math.round(mins);
+}
+function predictedSoc(b){
+  var h = b.socHistory;
+  if(!h || h.length<3) return b.soc;
+  var deltas = [];
+  for(var i=1;i<h.length;i++) deltas.push(h[i]-h[i-1]);
+  var avgDelta = deltas.reduce(function(s,d){return s+d;},0)/deltas.length;
+  return Math.max(0, Math.min(100, Math.round(b.soc+avgDelta*2)));
+}
+function expectedRange(b){ return Math.round(predictedSoc(b)/100*maxRange(b)); }
+function effectiveRange(b){ return Math.min(busRange(b), expectedRange(b)); }
+function hasTrend(b){ return b.socHistory && b.socHistory.length>=3; }
+function canServeRoute(bus, route){ return effectiveRange(bus) >= route.reqRange; }
+function isEligible(b){ return !b.maintenance && b.interiorClean && b.exteriorClean && b.oilCheck && b.engineCheck && !needsCharge(b); }
+function matchScore(bus, route){
+  var score = 0;
+  var margin = effectiveRange(bus)-route.reqRange;
+  score += Math.max(0, Math.min(40, margin/route.reqRange*40));
+  score += Math.max(0, Math.min(25, bus.soc/100*25));
+  score += Math.max(0, Math.min(20, bus.soh/100*20));
+  score += bus.odoSinceService<SERVICE_INTERVAL_KM ? 10 : 0;
+  score += bus.faultRisk===0 ? 5 : 0;
+  return Math.round(score);
+}
+function pillClass(cat){ return {A:'pill-a',B:'pill-b',C:'pill-c',Simple:'pill-simple',Moderate:'pill-moderate',Complex:'pill-complex',High:'pill-complex',Medium:'pill-moderate',Open:'pill-complex',Closed:'pill-simple'}[cat]; }
+function pad(n){ return (n<10?'0':'')+n; }
+function nowStr(){ var t=new Date(); return pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds()); }
+
+var ICONS = {
+  bus:'<rect x="3" y="5" width="18" height="11" rx="2"/><line x1="3" y1="11" x2="21" y2="11"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/>',
+  battery:'<rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="10" x2="22" y2="14"/><line x1="6" y1="12" x2="10" y2="12"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  warn:'<path d="M12 2 L22 20 L2 20 Z"/><line x1="12" y1="9" x2="12" y2="13.5"/><circle cx="12" cy="16.5" r="0.9" fill="currentColor"/>',
+  wrench:'<path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>',
+  drop:'<path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/>',
+  spark:'<path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z"/>',
+  refresh:'<polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2-9.5L1 10"/>',
+  oil:'<path d="M9 3h6v4l2 3v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9l2-3z"/><line x1="8" y1="14" x2="16" y2="14"/>',
+  engine:'<rect x="2" y="9" width="13" height="7" rx="1"/><path d="M15 11h3l3 2v2l-3 2h-3z"/><line x1="5" y1="9" x2="5" y2="6"/><line x1="9" y1="9" x2="9" y2="6"/>',
+  driver:'<circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-4.2 3.1-6.5 7-6.5s7 2.3 7 6.5"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  gauge:'<circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="15.5" y2="9"/><line x1="6" y1="13" x2="7.3" y2="13"/><line x1="16.7" y1="13" x2="18" y2="13"/><line x1="12" y1="5" x2="12" y2="6.3"/>',
+  clipboard:'<rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/>'
+};
+function icon(name){ return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>'; }
+
+var routes = [
+  {id:'r1',code:'500DC', name:'Hebbala Bridge - Chandapura',        reqRange:104.2, schedules:4},
+  {id:'r2',code:'600F',  name:'Banashankari TTMC - Attibele',       reqRange:114.5, schedules:38},
+  {id:'r3',code:'KBS3A', name:'Kempegowda Bus Stn - Attibele',      reqRange:115.9, schedules:21},
+  {id:'r4',code:'KBS3F', name:'Kempegowda Bus Stn - Attibele (F)',  reqRange:119.7, schedules:10},
+  {id:'r5',code:'360K',  name:'Kempegowda Bus Stn - Attibele',      reqRange:122.9, schedules:17},
+  {id:'r6',code:'361C',  name:'(route name not in your slides)',    reqRange:128.9, schedules:9},
+  {id:'r7',code:'328H',  name:'Attibele - Hosakote Bus Stand',      reqRange:129.3, schedules:20},
+  {id:'r8',code:'356Z',  name:'Anekal - Chandapura',                reqRange:129.7, schedules:6},
+  {id:'r9',code:'399C',  name:'(route name not in your slides)',    reqRange:138.4, schedules:4}
+];
+routes.forEach(function(r){ r.category = routeCategory(r.reqRange); });
+
+function makeFleet(){
+  var raw = [
+    ['BM248',95,true,true,true,true,false,3200,97], ['BM278',90,true,true,true,true,false,7800,94], ['BM200',88,true,false,true,true,false,9600,91],
+    ['BM201',99,true,true,true,true,false,1200,99], ['BM294',70,true,true,true,true,false,6100,88], ['BM299',68,true,true,true,true,false,10400,95],
+    ['BM223',80,false,true,true,true,false,4300,92],['BM153',91,true,true,true,true,true,8900,90], ['BM281',45,true,true,true,true,false,2100,96],
+    ['BM216',75,true,true,true,true,false,5500,93], ['BM183',35,true,true,true,true,false,9100,85], ['BM068',97,true,true,true,true,false,600,98],
+    ['BM215',72,true,true,true,true,false,7200,94], ['BM054',25,true,true,true,true,false,3800,89], ['BM207',60,true,true,true,true,false,10800,91],
+    ['BM255',85,false,false,true,true,false,5900,87],['BM086',93,true,true,true,true,false,2700,96],['BM273',50,true,true,false,true,false,8300,93],
+    ['BM268',67,true,true,true,true,false,4600,90], ['BM285',99,true,true,true,true,false,1800,99],['BM082',40,true,true,false,true,false,6700,86],
+    ['BM224',74,true,true,true,false,false,9400,92],['BM289',20,true,true,true,true,false,3300,83], ['BM274',85,true,true,true,true,false,7500,95]
+  ];
+  return raw.map(function(r){
+    return {id:r[0], soc:r[1], interiorClean:r[2], exteriorClean:r[3], oilCheck:r[4], engineCheck:r[5], maintenance:r[6], socHistory:[r[1]], odoSinceService:r[7], soh:r[8], faultRisk:0};
+  });
+}
+var fleet = makeFleet();
+var EXTERIOR_ITEMS = ['Front LH','Front RH','Windshield Front','Head Lamp','LH Side Door & Lock','Window Glass LH','Indicator LH','Passenger Door Front','Passenger Door Rear','Rear LH','Rear RH','Rear Door','Windshield Rear','Tail Lamp','RH Side Door & Lock','Window Glass RH','Indicator RH'];
+var INTERIOR_ITEMS = ['Floor','Driver Cabin','Front Foot Board','Rear Foot Board','Window Glass','Body','A/C Duct','Front Windshield','Rear Windshield','Dashboard','LED Destination Board','Bus Roof','Louver Vent','Emergency Window','Seat Back Side Wall','Metal Handle & Hand Holder','Glass Bottom Area'];
+var checklistState = {};
+var inspectBusId = null;
+
+// --- Defect capture & prioritization (your "AI-Based Defect Capture" slide) ---
+var DEPOT_NAME = 'Chandapura Depot';
+// My own read of which OHM_004 items are safety/visibility-critical vs cosmetic - edit freely if your depot grades this differently.
+var HIGH_SEV_ITEMS = ['Windshield Front','Windshield Rear','Head Lamp','Tail Lamp','Indicator LH','Indicator RH',
+  'LH Side Door & Lock','RH Side Door & Lock','Rear Door','Passenger Door Front','Passenger Door Rear','Window Glass LH','Window Glass RH',
+  'Driver Cabin','Front Windshield','Rear Windshield','Emergency Window','Window Glass','LED Destination Board','Metal Handle & Hand Holder'];
+function defectSeverity(item){ return HIGH_SEV_ITEMS.indexOf(item)!==-1 ? 'High' : 'Medium'; }
+var SEED_DEFECTS = [
+  {busId:'BM200', area:'Exterior', item:'Rear LH'},
+  {busId:'BM223', area:'Interior', item:'Dashboard'},
+  {busId:'BM255', area:'Exterior', item:'Head Lamp'},
+  {busId:'BM255', area:'Interior', item:'A/C Duct'}
+];
+function padN(n,len){ n=''+n; while(n.length<len) n='0'+n; return n; }
+var defectLog = [];
+var defectSeq = 1;
+var unwantedChargeEvents = 0; // count of buses that hit the RESERVE_SOC floor mid-route - each one is an unplanned charging stop / avoidable disruption
+var unwantedChargesByRoute = {}; // same events, broken down by route code - shows whether it's a few routes doing most of the damage or spread evenly
+var costPerUnplannedCharge = 500; // rupees per forced mid-route charging stop - a placeholder, not your real number. Edit here or live via the input in the Defect overview panel to match your depot's actual cost (recovery trip + schedule disruption + driver overtime)
+function logDefect(busId, area, item, severity){
+  var existing = defectLog.filter(function(d){return d.busId===busId && d.item===item && d.status==='Open';})[0];
+  if(existing) return existing;
+  var d = {id:'DEF-'+padN(defectSeq++,3), busId:busId, area:area, item:item, severity:severity||defectSeverity(item), status:'Open', loggedAt:nowStr(), closedAt:null};
+  defectLog.unshift(d);
+  return d;
+}
+function closeDefectRecord(busId, item){
+  var d = defectLog.filter(function(d){return d.busId===busId && d.item===item && d.status==='Open';})[0];
+  if(d){ d.status='Closed'; d.closedAt=nowStr(); }
+  return d;
+}
+function seedDefects(){ SEED_DEFECTS.forEach(function(s){ logDefect(s.busId, s.area, s.item, defectSeverity(s.item)); }); }
+seedDefects();
+
+function getChecklist(busId){
+  if(!checklistState[busId]){
+    var ext = {}; EXTERIOR_ITEMS.forEach(function(i){ ext[i]=true; });
+    var intr = {}; INTERIOR_ITEMS.forEach(function(i){ intr[i]=true; });
+    SEED_DEFECTS.filter(function(s){return s.busId===busId;}).forEach(function(s){
+      if(s.area==='Exterior') ext[s.item]=false; else intr[s.item]=false;
+    });
+    checklistState[busId] = {ext:ext, int:intr};
+  }
+  return checklistState[busId];
+}
+function syncBusFromChecklist(busId){
+  var bus = fleet.filter(function(b){return b.id===busId;})[0];
+  var cl = getChecklist(busId);
+  bus.exteriorClean = EXTERIOR_ITEMS.every(function(i){return cl.ext[i];});
+  bus.interiorClean = INTERIOR_ITEMS.every(function(i){return cl.int[i];});
+}
+var trips = {};
+function startTrips(assignments){
+  trips = {};
+  assignments.forEach(function(a){
+    trips[a.busId] = {routeCode:a.route.code, reqRange:a.route.reqRange, progress:0, speed:0, cabinTemp:24, tires:'OK', harshEvents:0, done:false};
+  });
+}
+
+function manualAssign(busId, routeId){
+  var route = routes.filter(function(r){return r.id===routeId;})[0];
+  if(!route) return;
+  if(!result) result = {assignments:[], gaps:[]};
+  result.assignments = result.assignments.filter(function(a){return a.busId!==busId;}); // a manual pick supersedes any earlier assignment for this bus
+  var usedDriverIds = result.assignments.map(function(a){return a.driverId;});
+  var allowedDrv = DRIVER_MATCH[route.category];
+  var drvPref = allowedDrv.slice().sort(function(x,y){ return DRV_RANK[x]-DRV_RANK[y]; });
+  var drvCands = drivers.filter(function(d){ return d.status==='Available' && usedDriverIds.indexOf(d.id)===-1 && allowedDrv.indexOf(d.grade)!==-1; })
+    .sort(function(a,b){ return drvPref.indexOf(a.grade)-drvPref.indexOf(b.grade); });
+  if(drvCands.length===0){ logEvent('Manual assign for '+busId+' on '+route.code+' held - no eligible driver free right now'); render(); return; }
+  result.assignments.push({route:route, busId:busId, driverId:drvCands[0].id});
+  trips[busId] = {routeCode:route.code, reqRange:route.reqRange, progress:0, speed:0, cabinTemp:24, tires:'OK', harshEvents:0, done:false};
+  logEvent(busId+' manually assigned to '+route.code+' with '+drvCands[0].id+' - dispatched');
+  render();
+}
+
+function makeDrivers(){
+  return [
+    {id:'DR-01', grade:'Senior', status:'Available'}, {id:'DR-02', grade:'Senior', status:'Available'},
+    {id:'DR-03', grade:'Senior', status:'Off Duty'},  {id:'DR-04', grade:'Senior', status:'Available'},
+    {id:'DR-05', grade:'Senior', status:'On Leave'},
+    {id:'DR-06', grade:'Standard', status:'Available'}, {id:'DR-07', grade:'Standard', status:'Available'},
+    {id:'DR-08', grade:'Standard', status:'Available'}, {id:'DR-09', grade:'Standard', status:'Off Duty'},
+    {id:'DR-10', grade:'Standard', status:'Available'}, {id:'DR-11', grade:'Standard', status:'Available'},
+    {id:'DR-12', grade:'Standard', status:'On Leave'}
+  ];
+}
+var drivers = makeDrivers();
+var slotId = 't2';
+var bestBusRouteId = null;
+var result = null;
+var daySummary = null;
+var STORAGE_KEY = 'ashok-leyland-depot-state-v1';
+var lastSavedAt = null;
+
+function saveCloudReadyState(){
+  var state = {fleet:fleet, drivers:drivers, checklistState:checklistState, defectLog:defectLog, defectSeq:defectSeq,
+    unwantedChargeEvents:unwantedChargeEvents, unwantedChargesByRoute:unwantedChargesByRoute, costPerUnplannedCharge:costPerUnplannedCharge,
+    slotId:slotId, bestBusRouteId:bestBusRouteId};
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); lastSavedAt = new Date(); } catch(e) {}
+}
+function restoreCloudReadyState(){
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(!saved || !saved.fleet || !saved.drivers) return false;
+    fleet=saved.fleet; drivers=saved.drivers; checklistState=saved.checklistState||{}; defectLog=saved.defectLog||[]; defectSeq=saved.defectSeq||1;
+    unwantedChargeEvents=saved.unwantedChargeEvents||0; unwantedChargesByRoute=saved.unwantedChargesByRoute||{}; costPerUnplannedCharge=saved.costPerUnplannedCharge||500;
+    slotId=saved.slotId||'t2'; bestBusRouteId=saved.bestBusRouteId||null; lastSavedAt=new Date(); return true;
+  } catch(e) { return false; }
+}
+function exportCloudBackup(){
+  saveCloudReadyState();
+  var state=localStorage.getItem(STORAGE_KEY)||'{}';
+  var blob=new Blob([state],{type:'application/json'}); var url=URL.createObjectURL(blob); var link=document.createElement('a');
+  link.href=url; link.download='chandapura-depot-backup-'+new Date().toISOString().slice(0,10)+'.json'; link.click(); URL.revokeObjectURL(url);
+}
+function importCloudBackup(file){
+  if(!file) return; var reader=new FileReader();
+  reader.onload=function(){ try { var state=JSON.parse(reader.result); localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); restoreCloudReadyState(); render(); } catch(e) { alert('Backup file could not be loaded.'); } };
+  reader.readAsText(file);
+}
+
+var liveOn = false, liveTimer = null, lastSync = null, feedLog = [];
+function tickTrips(){
+  Object.keys(trips).forEach(function(busId){
+    var t = trips[busId];
+    if(t.done) return;
+    var before = t.progress;
+    t.progress = Math.min(100, t.progress + Math.round(9+Math.random()*10));
+    var bus = fleet.filter(function(b){return b.id===busId;})[0];
+    if(bus){
+      var kmThisTick = (t.progress-before)/100*t.reqRange;
+      var wasUnder = bus.odoSinceService < SERVICE_INTERVAL_KM;
+      bus.odoSinceService = Math.round(bus.odoSinceService + kmThisTick);
+      if(wasUnder && bus.odoSinceService>=SERVICE_INTERVAL_KM) logEvent(busId+' crossed '+SERVICE_INTERVAL_KM+'km - service due');
+    }
+    t.speed = t.progress>=100 ? 0 : Math.round(18+Math.random()*35);
+    t.cabinTemp = Math.round((23+Math.random()*5)*10)/10;
+    if(t.tires==='OK' && Math.random()<0.06){ t.tires='Low'; logEvent(busId+' TPMS: tyre pressure low'); }
+    if(t.speed>25 && Math.random()<0.12){
+      t.harshEvents++;
+      if(bus) bus.faultRisk = Math.min(3, (bus.faultRisk||0)+1);
+      logEvent(busId+' harsh '+(Math.random()<0.5?'braking':'acceleration')+' event - fault risk up');
+    }
+    if(t.progress>=100){
+      t.done=true; t.speed=0;
+      if(bus){ bus.soh = Math.max(60, Math.round((bus.soh-(0.1+Math.random()*0.15))*10)/10); }
+      logEvent(busId+' completed trip on '+t.routeCode);
+    }
+  });
+}
+function logEvent(msg){ feedLog.unshift(nowStr()+' \u2014 '+msg); if(feedLog.length>8) feedLog.length = 8; }
+function tickSensors(){
+  fleet.forEach(function(b){
+    if(b.maintenance) return;
+    var trip = trips[b.id];
+    var onTrip = trip && !trip.done;
+    var delta = onTrip ? -Math.round(2 + trip.reqRange/45) : Math.round(Math.random()*5-3.2);
+    var old = b.soc;
+    b.soc = Math.max(3, Math.min(100, b.soc+delta));
+    if(!b.socHistory) b.socHistory = [old];
+    b.socHistory.push(b.soc);
+    if(b.socHistory.length>6) b.socHistory.shift();
+    if(Math.abs(b.soc-old)>=3) logEvent(b.id+' battery sensor '+old+'% \u2192 '+b.soc+'%');
+    if(onTrip && old>RESERVE_SOC && b.soc<=RESERVE_SOC){
+      unwantedChargeEvents++;
+      unwantedChargesByRoute[trip.routeCode] = (unwantedChargesByRoute[trip.routeCode]||0)+1;
+      logDefect(b.id, 'Reported', 'Battery hit the '+RESERVE_SOC+'% reserve mid-route on '+trip.routeCode, 'High');
+      logEvent(b.id+' hit the '+RESERVE_SOC+'% reserve mid-route on '+trip.routeCode+' - unplanned charging stop needed');
+    }
+  });
+  tickTrips();
+  var weighted = [];
+  fleet.forEach(function(b){
+    if(b.maintenance) return;
+    var trip = trips[b.id];
+    var onTrip = trip && !trip.done;
+    var weight = 1 + (onTrip?3:0) + (b.faultRisk||0)*2;
+    for(var i=0;i<weight;i++) weighted.push(b);
+  });
+  if(weighted.length && Math.random()<0.45){
+    var pick = weighted[Math.floor(Math.random()*weighted.length)];
+    var wasRisky = (pick.faultRisk||0)>0;
+    var r = Math.random();
+    if(r<0.4){ pick.oilCheck = !pick.oilCheck; logEvent(pick.id+' oil sensor '+(pick.oilCheck?'cleared':'flagged fault')+(wasRisky?' (elevated risk from recent harsh driving)':'')); }
+    else if(r<0.75){ pick.engineCheck = !pick.engineCheck; logEvent(pick.id+' engine sensor '+(pick.engineCheck?'cleared':'flagged fault')+(wasRisky?' (elevated risk from recent harsh driving)':'')); }
+    else { pick.maintenance = !pick.maintenance; logEvent(pick.id+' maintenance hold '+(pick.maintenance?'raised':'released')); }
+    if(wasRisky) pick.faultRisk = Math.max(0, pick.faultRisk-1);
+  }
+  lastSync = new Date();
+  result = null;
+  render();
+}
+function toggleLive(){
+  liveOn = !liveOn;
+  if(liveOn){ logEvent('Live sensor feed connected (simulated)'); lastSync = new Date(); liveTimer = setInterval(tickSensors, 2600); }
+  else { clearInterval(liveTimer); logEvent('Live sensor feed stopped'); }
+  render();
+}
+
+function computeAllocationFor(slotCat){
+  var busPool = fleet.filter(isEligible);
+  var driverPool = drivers.filter(function(d){return d.status==='Available';});
+  var strictness = {Complex:0, Moderate:1, Simple:2};
+  var sorted = routes.slice().sort(function(a,b){ return strictness[a.category]-strictness[b.category]; });
+  var usedBus = {}; var usedDriver = {};
+  var assignments = []; var gaps = [];
+  sorted.forEach(function(route){
+    var allowedBus = MATCH_TABLE[route.category][slotCat];
+    var busPref = allowedBus.slice().sort(function(x,y){ return CAT_RANK[x]-CAT_RANK[y]; });
+    var categoryCands = busPool.filter(function(b){ return !usedBus[b.id] && allowedBus.indexOf(rangeCategory(effectiveRange(b)))!==-1; });
+    var busCands = categoryCands.filter(function(b){ return canServeRoute(b, route); })
+      .sort(function(a,b){
+        var pa = busPref.indexOf(rangeCategory(effectiveRange(a))), pb = busPref.indexOf(rangeCategory(effectiveRange(b)));
+        if(pa!==pb) return pa-pb; return b.soc-a.soc;
+      });
+    var allowedDrv = DRIVER_MATCH[route.category];
+    var drvPref = allowedDrv.slice().sort(function(x,y){ return DRV_RANK[x]-DRV_RANK[y]; });
+    var drvCands = driverPool.filter(function(d){ return !usedDriver[d.id] && allowedDrv.indexOf(d.grade)!==-1; })
+      .sort(function(a,b){ return drvPref.indexOf(a.grade)-drvPref.indexOf(b.grade); });
+
+    if(busCands.length>0 && drvCands.length>0){
+      usedBus[busCands[0].id]=true; usedDriver[drvCands[0].id]=true;
+      assignments.push({route:route, busId:busCands[0].id, driverId:drvCands[0].id});
+    } else {
+      var reason;
+      if(busCands.length===0 && drvCands.length===0) reason = 'both';
+      else if(busCands.length===0) reason = categoryCands.length>0 ? 'bus-range' : 'bus';
+      else reason = 'driver';
+      gaps.push({route:route, reason:reason});
+    }
+  });
+  return {assignments:assignments, gaps:gaps};
+}
+function computeAllocation(){
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  return computeAllocationFor(slot.cat);
+}
+function runFullDay(){
+  daySummary = TIME_SLOTS.map(function(s){
+    var r = computeAllocationFor(s.cat);
+    return {slot:s, covered:r.assignments.length, gaps:r.gaps.length};
+  });
+  render();
+}
+
+function render(){
+  saveCloudReadyState();
+  var app = document.getElementById('app');
+  app.innerHTML = renderHeader() + renderOpsBrief() + renderActionCenter() + renderKpis() + renderLiveSection() + renderSlotsSection() + renderShedChecklist() + renderDefectDashboard() + renderTablesSection() + renderBestBusFinder() + renderDepotAvailabilityTable() + renderPlanningSection() + renderChartAndRun() + renderResult() + renderTripMonitor();
+  bindEvents();
+}
+
+function renderHeader(){
+  return '<div class="header"><div class="headline"><div class="badge-icon">'+icon('bus')+'</div>' +
+    '<div><h1>Smart Bus Scheduling - Chandapura Depot</h1>' +
+    '<p class="sub">Battery, oil &amp; engine sensors, driver grade, route complexity, and defect capture - matched per your Schedule Allocation &amp; Defect Management Guidelines<br>' +
+    '<span style="color:var(--accent-2);font-weight:600;">Fleet: SWITCH EiV12</span>&nbsp;<span style="color:#b3aee0;">|</span>&nbsp;Ashok Leyland Group</p></div></div>' +
+    '<div><button class="btn" id="resetBtn">'+icon('refresh')+' Reset all</button><div class="data-hub"><button class="btn" id="exportBtn">'+icon('clipboard')+' Export backup</button><button class="btn" id="importBtn">'+icon('refresh')+' Restore backup</button><input class="file-input" type="file" id="importFile" accept="application/json"><span class="sync-status">'+(lastSavedAt?'Saved locally '+pad(lastSavedAt.getHours())+':'+pad(lastSavedAt.getMinutes()):'Cloud-ready local storage')+'</span></div></div></div>';
+}
+
+function renderProjectContext(){
+  var depots = ['Chandapura','Central','North','South','East','West','Airport'];
+  var depotCards = depots.map(function(name, index){
+    return '<div class="depot-card '+(index===0?'live':'')+'"><div class="depot-card-name">'+name+' Depot</div><div class="depot-card-meta">'+(index===0?'Live pilot data':'Pilot rollout queued')+'</div></div>';
+  }).join('');
+  return '<div class="project-context">' +
+    '<div class="project-context-head"><div class="project-title">AI-Based Smart Bus Scheduling System for Depot-Level Operations</div><div class="sub">Real-time fleet analytics, route allocation, and defect prioritization for reliable depot operations</div></div>' +
+    '<div class="project-context-grid">' +
+      '<div class="project-context-copy"><strong>Problem statement</strong>Manual schedule allocation depends on experienced staff to balance vehicle availability, battery charging status, expected range, cleaning completion, maintenance requirements, and route-specific needs. This makes dispatch slow, inconsistent, and difficult to scale across a large electric-bus fleet.</div>' +
+      '<div class="project-context-copy"><strong>Objective</strong>Automatically analyze vehicle status, depot operations, and schedule requirements to recommend the most suitable bus, proactively manage constraints, and protect on-time departures.<ul class="project-objectives"><li>Battery SOC and expected range</li><li>Schedule distance and route complexity</li><li>Vehicle, charging, and driver availability</li><li>Defect trends and proactive maintenance</li></ul></div>' +
+    '</div>' +
+    '<div class="process-flow"><div class="process-step">Bus charging<br>98-100% target</div><div class="process-arrow">&rarr;</div><div class="process-step">Interior cleaning</div><div class="process-arrow">&rarr;</div><div class="process-step">Exterior cleaning</div><div class="process-arrow">&rarr;</div><div class="process-step">AI schedule allocation</div><div class="process-arrow">&rarr;</div><div class="process-step">Driver assignment<br>and dispatch</div></div>' +
+    '<div class="section" style="margin:0;padding:14px 16px;border-top:1px solid var(--border-soft);"><div class="section-label" style="margin-bottom:9px;">'+icon('grid')+'7-depot defect-management rollout</div><div class="depot-network">'+depotCards+'</div></div>' +
+  '</div>';
+}
+
+function renderOpsBrief(){
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var allocation = computeAllocationFor(slot.cat);
+  var eligible = fleet.filter(isEligible).length;
+  var clean = fleet.filter(function(b){return b.interiorClean && b.exteriorClean;}).length;
+  var chargeReady = fleet.filter(function(b){return !needsCharge(b);}).length;
+  var availableDrivers = drivers.filter(function(d){return d.status==='Available';}).length;
+  var readiness = Math.round((eligible/fleet.length*45) + (chargeReady/fleet.length*20) + (clean/fleet.length*15) + (availableDrivers/drivers.length*20));
+  var readinessColor = readiness>=80 ? 'var(--green)' : readiness>=60 ? 'var(--amber)' : 'var(--red)';
+  function card(label, value, note){
+    return '<div class="ops-card"><div class="ops-card-label">'+label+'</div><div class="ops-card-value">'+value+'</div><div class="ops-card-note">'+note+'</div></div>';
+  }
+  return '<div class="ops-brief">' +
+    '<div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('spark')+'Advanced depot decision brief</div>' +
+      '<div class="ops-brief-copy">The scheduler scores each dispatch using vehicle availability, battery health, exact route range, shed clearance, maintenance state, route complexity, and driver qualification.</div></div>' +
+      '<div class="ops-score"><span style="color:'+readinessColor+';">'+readiness+'% operational readiness</span><span class="ops-score-track"><span class="ops-score-fill" style="width:'+readiness+'%;background:'+readinessColor+';"></span></span></div></div>' +
+    '<div class="ops-grid">' +
+      card('Current slot coverage', allocation.assignments.length+'/'+routes.length, slot.label+' - '+allocation.gaps+' route gap'+(allocation.gaps===1?'':'s')) +
+      card('Dispatch-ready fleet', eligible+'/'+fleet.length, 'passes checklist, sensors, maintenance and charge floor') +
+      card('Charge-safe vehicles', chargeReady+'/'+fleet.length, (fleet.length-chargeReady)+' at or below '+RESERVE_SOC+'% reserve') +
+      card('Shed-cleared vehicles', clean+'/'+fleet.length, (fleet.length-clean)+' need cleaning or inspection') +
+      card('Qualified drivers on duty', availableDrivers+'/'+drivers.length, 'grade-aware matching is enforced per route') +
+    '</div></div>';
+}
+
+function renderActionCenter(){
+  var lowBuses = fleet.filter(needsCharge).sort(function(a,b){return a.soc-b.soc;});
+  var blocked = fleet.filter(function(b){return b.maintenance || !b.interiorClean || !b.exteriorClean || !b.oilCheck || !b.engineCheck;});
+  var serviceDue = fleet.filter(function(b){return b.odoSinceService>=SERVICE_INTERVAL_KM;});
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var gaps = computeAllocationFor(slot.cat).gaps;
+  function actionCard(level, title, text){ return '<div class="action-card '+level+'"><div class="action-card-title">'+icon(level==='critical'?'warn':level==='warning'?'clock':'spark')+title+'</div><div class="action-card-text">'+text+'</div></div>'; }
+  var chargeText = lowBuses.length ? lowBuses.slice(0,4).map(function(b){return '<b>'+b.id+'</b> ('+b.soc+'%)';}).join(', ')+(lowBuses.length>4?' and '+(lowBuses.length-4)+' more':'')+' should enter the charging queue before dispatch.' : 'No bus is below the '+RESERVE_SOC+'% reserve threshold.';
+  var blockedText = blocked.length ? '<b>'+blocked.length+' bus'+(blocked.length===1?' is':'es are')+'</b> blocked by maintenance, cleaning, or sensor checks. Clear the shed checklist before assigning them.' : 'All buses pass the cleaning, oil, engine, and maintenance gates.';
+  var serviceText = serviceDue.length ? '<b>'+serviceDue.map(function(b){return b.id;}).join(', ')+'</b> '+(serviceDue.length===1?'is':'are')+' due for service before the next operating cycle.' : 'No vehicle has crossed the '+SERVICE_INTERVAL_KM.toLocaleString('en-IN')+' km service interval.';
+  var coverageText = gaps ? '<b>'+gaps+' route'+(gaps===1?'':'s')+'</b> cannot be covered in '+slot.label+'. Review charging priority and qualified driver availability.' : 'All routes have a valid bus and qualified driver for '+slot.label+'.';
+  return '<div class="section"><div class="section-label">'+icon('clipboard')+'Recommended actions &amp; risk queue <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; generated from current fleet and schedule state</span></div><div class="action-grid">' +
+    actionCard(lowBuses.length?'critical':'normal','Charging queue',chargeText) +
+    actionCard(blocked.length?'warning':'normal','Pre-departure blockers',blockedText) +
+    actionCard(serviceDue.length?'warning':'normal','Predictive service queue',serviceText) +
+    actionCard(gaps?'critical':'normal','Coverage risk',coverageText) +
+  '</div></div>';
+}
+
+function renderKpis(){
+  var elig = fleet.filter(isEligible).length;
+  var maint = fleet.filter(function(b){return b.maintenance;}).length;
+  var needsClean = fleet.filter(function(b){return !b.interiorClean||!b.exteriorClean;}).length;
+  var sensorFail = fleet.filter(function(b){return !b.oilCheck||!b.engineCheck;}).length;
+  var svcDue = fleet.filter(function(b){return b.odoSinceService>=SERVICE_INTERVAL_KM;}).length;
+  var avgSoc = Math.round(fleet.reduce(function(s,b){return s+b.soc;},0)/fleet.length);
+  var lowBatt = fleet.filter(needsCharge).length;
+  var drvAvail = drivers.filter(function(d){return d.status==='Available';}).length;
+  var openDef = defectLog.filter(function(d){return d.status==='Open';}).length;
+  function kpi(label,val,i){ return '<div class="kpi"><div class="kpi-label">'+icon(i)+label+'</div><div class="kpi-value">'+val+'</div></div>'; }
+  return '<div class="kpis">' + kpi('Fleet size', fleet.length, 'bus') + kpi('Dispatch-ready', elig, 'check') +
+    kpi('Avg battery', avgSoc+'%', 'battery') + kpi('Needs charging', lowBatt, 'spark') + kpi('Needs cleaning', needsClean, 'drop') +
+    kpi('Sensor faults', sensorFail, 'engine') + kpi('Maintenance hold', maint, 'wrench') + kpi('Service due', svcDue, 'clipboard') +
+    kpi('Open defects', openDef, 'warn') +
+    kpi('Drivers on duty', drvAvail+'/'+drivers.length, 'driver') + '</div>';
+}
+
+function renderLiveSection(){
+  var lastText = lastSync ? (pad(lastSync.getHours())+':'+pad(lastSync.getMinutes())+':'+pad(lastSync.getSeconds())) : 'not started';
+  var feedHtml = feedLog.length ? feedLog.map(function(l){return '<div class="feed-item">'+l+'</div>';}).join('')
+    : '<div class="feed-item muted">No events yet - start the feed to simulate live battery/oil/engine sensors.</div>';
+  return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
+    '<span><span class="live-dot'+(liveOn?'':' off')+'"></span>&nbsp;Live sensor feed (simulated) &middot; last sync '+lastText+'</span>' +
+    '<button class="btn '+(liveOn?'btn-stop':'btn-live')+'" id="liveBtn">'+(liveOn?'Stop feed':'Start feed')+'</button></div>' +
+    '<div class="feedbox">'+feedHtml+'</div></div>';
+}
+
+function renderSlotsSection(){
+  var html = '<div class="section"><div class="section-label">'+icon('clock')+'Time slot to allocate against</div><div class="slots">';
+  TIME_SLOTS.forEach(function(s){
+    html += '<button class="slot'+(s.id===slotId?' active':'')+'" data-slot="'+s.id+'"><div class="t1">'+s.label+'</div><div class="t2">'+s.cat+'</div></button>';
+  });
+  return html + '</div></div>';
+}
+
+function renderShedChecklist(){
+  if(!inspectBusId) inspectBusId = fleet[0].id;
+  var busId = inspectBusId;
+  var bus = fleet.filter(function(b){return b.id===busId;})[0];
+  var cl = getChecklist(busId);
+  var extDefects = EXTERIOR_ITEMS.filter(function(i){return !cl.ext[i];}).length;
+  var intDefects = INTERIOR_ITEMS.filter(function(i){return !cl.int[i];}).length;
+  var total = extDefects+intDefects;
+  var options = fleet.map(function(b){ return '<option value="'+b.id+'"'+(b.id===busId?' selected':'')+'>'+b.id+'</option>'; }).join('');
+  function itemGrid(items, state, prefix){
+    return items.map(function(i){
+      var ok = state[i];
+      return '<button type="button" class="checklist-item'+(ok?'':' bad')+'" data-prefix="'+prefix+'" data-item="'+i+'">'+icon(ok?'check':'x')+'<span>'+i+'</span></button>';
+    }).join('');
+  }
+  var battOk = bus.soc>=98;
+  var battFlag = battOk
+    ? '<span style="color:var(--green);">'+icon('check')+' at 98-100% target</span>'
+    : '<span style="color:var(--amber);">'+icon('warn')+' below the 98-100% shed-exit target</span>';
+  var chargeNote = needsCharge(bus) ? '<span style="color:var(--red);font-weight:600;">'+icon('warn')+' at/below the '+RESERVE_SOC+'% reserve - charge now, not dispatch-eligible</span>'
+    : chargeSoonFlag(bus) ? '<span style="color:var(--amber);">'+icon('warn')+' approaching the '+RESERVE_SOC+'% reserve - charge soon</span>'
+    : '<span style="color:var(--muted);">'+(bus.soc-RESERVE_SOC)+'% above the '+RESERVE_SOC+'% reserve</span>';
+  var svcOver = bus.odoSinceService>=SERVICE_INTERVAL_KM;
+  var svcNote = svcOver ? '<span style="color:var(--red);font-weight:600;">'+icon('wrench')+' service overdue ('+bus.odoSinceService+' / '+SERVICE_INTERVAL_KM+'km)</span>'
+    : '<span style="color:var(--muted);">'+bus.odoSinceService+' / '+SERVICE_INTERVAL_KM+'km since last service</span>';
+  var myAssignment = result ? result.assignments.filter(function(a){return a.busId===busId;})[0] : null;
+  var assignedRoute = myAssignment ? myAssignment.route : null;
+  var routeShort = assignedRoute ? Math.max(0, Math.round((assignedRoute.reqRange - effectiveRange(bus))*10)/10) : 0;
+  var routeOk = !assignedRoute || routeShort<=0;
+  var routeNote = '';
+  if(assignedRoute){
+    routeNote = routeOk
+      ? '<div style="font-size:11.5px;margin-bottom:12px;">'+icon('check')+' <span style="color:var(--green);">assigned to '+assignedRoute.code+' ('+assignedRoute.reqRange+'km) - effective range covers it, +'+(Math.round((effectiveRange(bus)-assignedRoute.reqRange)*10)/10)+'km margin</span></div>'
+      : '<div style="font-size:11.5px;margin-bottom:12px;">'+icon('warn')+' <span style="color:var(--red);font-weight:600;">assigned to '+assignedRoute.code+' ('+assignedRoute.reqRange+'km) - short by '+routeShort+'km on effective range, do not dispatch as-is</span></div>';
+  }
+  var canStart = total===0 && routeOk;
+  var minsToFull = minutesToCharge(bus.soc, 100);
+  var minsToCloseGap = (assignedRoute && routeShort>0) ? minutesToCharge(bus.soc, Math.min(100, bus.soc+Math.ceil(routeShort*100/maxRange(bus)))) : 0;
+  var chargeTimeNote = '<div style="font-size:11.5px;color:var(--muted);margin:2px 0 12px;">'+icon('clock')+' '+
+    (bus.soc>=98 ? 'already at the 98-100% shed-exit target - no charge time needed' : '~'+minsToFull+' min to full charge on the dual-gun fast charger')+
+    (minsToCloseGap>0 ? ' &middot; ~'+minsToCloseGap+' min would close the '+routeShort+'km shortfall for '+assignedRoute.code : '')+
+  '</div>';
+  var statusPill = total>0 ? '<span class="pill pill-complex">'+total+' defect'+(total>1?'s':'')+' - hold in shed</span>'
+    : !routeOk ? '<span class="pill pill-complex">short '+routeShort+'km for '+assignedRoute.code+'</span>'
+    : '<span class="pill pill-simple">Clear for departure</span>';
+  var startBtnTitle = total>0 ? 'Clear every checklist item first' : (routeOk ? '' : 'Assigned route needs '+routeShort+'km more effective range than this bus has');
+  var startBtn = canStart
+    ? '<button class="btn-primary" id="startEngineBtn" style="padding:6px 14px;font-size:12px;">'+icon('spark')+' Start engine</button>'
+    : '<button class="btn" id="startEngineBtn" disabled title="'+startBtnTitle+'" style="opacity:.45;cursor:not-allowed;">'+icon('wrench')+' Start engine</button>';
+  return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
+    '<span>'+icon('clipboard')+'Shed exit inspection (OHM_004 pre-departure checklist) <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; flags here open/close rows in the Defect log below</span></span>' +
+    '<select id="inspectSel">'+options+'</select></div>' +
+    '<div class="panel" style="padding:14px 16px;">' +
+      '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">' +
+        '<div style="font-size:12px;color:var(--muted);">Battery '+bus.soc+'% (range '+busRange(bus)+'km) '+battFlag+'</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+          statusPill + startBtn +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:11.5px;margin-bottom:4px;">'+
+        '<div>'+icon('battery')+' '+busRange(bus)+'km usable range - '+chargeNote+'</div>'+
+        '<div>'+icon('wrench')+' '+svcNote+'</div>'+
+      '</div>' +
+      chargeTimeNote +
+      routeNote +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+        '<span style="font-size:11px;color:var(--muted);">Exterior check ('+extDefects+' defect'+(extDefects!==1?'s':'')+')</span>'+
+        '<button class="btn" id="markAllClearBtn" style="padding:4px 10px;font-size:11px;">'+icon('check')+' Mark all clear</button>'+
+      '</div>' +
+      '<div class="checklist-grid">'+itemGrid(EXTERIOR_ITEMS, cl.ext, 'ext')+'</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin:14px 0 6px;">Interior check ('+intDefects+' defect'+(intDefects!==1?'s':'')+')</div>' +
+      '<div class="checklist-grid">'+itemGrid(INTERIOR_ITEMS, cl.int, 'int')+'</div>' +
+    '</div></div>';
+}
+
+function renderDefectDashboard(){
+  var open = defectLog.filter(function(d){return d.status==='Open';});
+  var closed = defectLog.filter(function(d){return d.status==='Closed';});
+  var highOpen = open.filter(function(d){return d.severity==='High';}).length;
+  var medOpen = open.filter(function(d){return d.severity==='Medium';}).length;
+
+  function statCell(label, val){ return '<div style="flex:1 1 88px;"><div style="font-size:10.5px;color:var(--muted);margin-bottom:3px;">'+label+'</div><div style="font-size:18px;font-weight:700;color:#0f172a;">'+val+'</div></div>'; }
+
+  var byBus = {};
+  open.forEach(function(d){ byBus[d.busId] = (byBus[d.busId]||0)+1; });
+  var busRanked = Object.keys(byBus).map(function(id){ return {id:id, n:byBus[id]}; }).sort(function(a,b){ return b.n-a.n; });
+  var maxBusN = Math.max.apply(null, busRanked.map(function(r){return r.n;}).concat([1]));
+
+  var byItem = {};
+  defectLog.forEach(function(d){ byItem[d.item] = (byItem[d.item]||0)+1; });
+  var itemRanked = Object.keys(byItem).map(function(item){ return {item:item, n:byItem[item]}; }).sort(function(a,b){ return b.n-a.n; }).slice(0,6);
+  var maxItemN = Math.max.apply(null, itemRanked.map(function(r){return r.n;}).concat([1]));
+
+  var busBars = busRanked.length ? busRanked.slice(0,6).map(function(r){
+    return '<div class="bar-row"><div class="bar-label mono">'+r.id+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(r.n/maxBusN*100)+'%;background:var(--red);"></div></div><div class="bar-value">'+r.n+'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--muted);">No open defects right now - fleet is clean.</div>';
+
+  var itemBars = itemRanked.length ? itemRanked.map(function(r){
+    return '<div class="bar-row"><div class="bar-label">'+r.item+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(r.n/maxItemN*100)+'%;background:var(--accent);"></div></div><div class="bar-value">'+r.n+'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--muted);">No defects logged yet.</div>';
+
+  var routeRanked = Object.keys(unwantedChargesByRoute).map(function(code){ return {code:code, n:unwantedChargesByRoute[code]}; }).sort(function(a,b){ return b.n-a.n; });
+  var maxRouteN = Math.max.apply(null, routeRanked.map(function(r){return r.n;}).concat([1]));
+  var routeBars = routeRanked.length ? routeRanked.map(function(r){
+    return '<div class="bar-row"><div class="bar-label">'+r.code+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(r.n/maxRouteN*100)+'%;background:var(--red);"></div></div><div class="bar-value">'+r.n+'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--muted);">No unplanned charges yet - run allocation for a slot or a full day and let the live feed run for a while.</div>';
+  var estCost = unwantedChargeEvents*costPerUnplannedCharge;
+
+  var busOptions = fleet.map(function(b){ return '<option value="'+b.id+'">'+b.id+'</option>'; }).join('');
+
+  var logRows = defectLog.slice(0,12).map(function(d){
+    return '<tr><td class="mono">'+d.id+'</td><td class="mono">'+d.busId+'</td><td>'+d.item+'</td>' +
+      '<td><span class="pill '+pillClass(d.severity)+'">'+d.severity+'</span></td>' +
+      '<td><span class="pill '+pillClass(d.status)+'">'+d.status+'</span></td>' +
+      '<td style="color:var(--muted);">'+d.loggedAt+'</td>' +
+      '<td>'+(d.status==='Open' ? '<button class="btn close-def-btn" data-id="'+d.id+'" style="padding:3px 9px;font-size:11px;">Close</button>' : '<span style="color:var(--muted);font-size:11px;">'+(d.closedAt||'')+'</span>')+'</td></tr>';
+  }).join('');
+
+  return '<div class="section"><div class="section-label">'+icon('warn')+'Defect capture &amp; prioritization &middot; '+DEPOT_NAME+' pilot <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:4px;">(your AI-Based Defect Capture slide, scoped to 7 depots)</span></div>' +
+    '<div class="grid2">' +
+      '<div class="panel"><div class="panel-head"><span>Defect overview</span></div><div style="padding:14px 16px;">' +
+        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">' +
+          statCell('Total logged', defectLog.length) + statCell('Open', open.length) + statCell('Closed', closed.length) + statCell('High sev', highOpen) + statCell('Med sev', medOpen) + statCell('Unplanned charges', unwantedChargeEvents) + statCell('Est. cost', '\u20B9'+estCost.toLocaleString('en-IN')) +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:14px;">\u20B9 per unplanned charge: <input type="number" id="costPerChargeIn" min="0" step="50" value="'+costPerUnplannedCharge+'" style="width:70px;background:#fff;border:1px solid var(--border);border-radius:5px;padding:3px 5px;font-size:12px;color:var(--text);"> <span>\u2014 edit to your depot\'s real per-stop cost, Est. cost above updates live</span></div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">By depot</div>' +
+        '<div class="assign-row"><span>'+DEPOT_NAME+' <span style="color:var(--muted);font-size:11px;">(live)</span></span>' +
+          '<span><span class="pill pill-complex">'+open.length+' open</span>&nbsp;<span class="pill pill-simple">'+closed.length+' closed</span></span></div>' +
+        '<div style="font-size:11.5px;color:var(--muted);padding:2px 12px;">6 more depots queued for the pilot-to-fleet rollout your Remarks column describes - no data connected yet.</div>' +
+      '</div></div>' +
+      '<div class="panel"><div class="panel-head"><span>Top buses by open defects</span></div><div style="padding:14px 16px;">'+busBars+'</div></div>' +
+    '</div>' +
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Top contributing defect types</span><span style="color:var(--muted);font-weight:400;font-size:11px;">cumulative since load, not day-bucketed - see footnote</span></div><div style="padding:14px 16px;">'+itemBars+'</div></div>' +
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Unplanned charges by route</span><span style="color:var(--muted);font-weight:400;font-size:11px;">which routes are actually driving the '+RESERVE_SOC+'% mid-trip hits</span></div><div style="padding:14px 16px;">'+routeBars+'</div></div>' +
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Defect log</span><span style="color:var(--muted);font-weight:400;font-size:11px;">most recent first</span></div>' +
+      '<div class="tablewrap"><table><thead><tr><th>ID</th><th>Bus</th><th>Item</th><th>Severity</th><th>Status</th><th>Logged</th><th></th></tr></thead><tbody>'+(logRows||'<tr><td colspan="7" style="color:var(--muted);">No defects logged yet.</td></tr>')+'</tbody></table></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 14px;border-top:1px solid var(--border-soft);">' +
+        '<select id="defBusSel">'+busOptions+'</select>' +
+        '<input type="text" id="defDescIn" placeholder="Defect description (e.g. AC not cooling)" style="flex:1;min-width:170px;background:#fff;border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;">' +
+        '<select id="defSevSel"><option value="High">High</option><option value="Medium" selected>Medium</option></select>' +
+        '<button class="btn-secondary" id="logDefectBtn">+ Log defect</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderTablesSection(){
+  var fleetRows = fleet.map(function(b){
+    var rng = busRange(b); var eff = effectiveRange(b); var cat = rangeCategory(eff); var elig = isEligible(b);
+    var trend = '';
+    if(hasTrend(b)){
+      var exp = expectedRange(b);
+      if(exp < rng - 2) trend = ' <span style="color:var(--red);font-size:10px;" title="predicted to trend down">&#8595;'+exp+'</span>';
+      else if(exp > rng + 2) trend = ' <span style="color:var(--green);font-size:10px;" title="predicted to trend up">&#8593;'+exp+'</span>';
+    }
+    return '<tr class="'+(elig?'':'row-dim')+'">' +
+      '<td class="mono">'+b.id+(b.faultRisk>0?' <span title="elevated fault risk from harsh driving" style="color:var(--amber);">\u25CF</span>':'')+'</td>' +
+      '<td><input type="number" min="0" max="100" class="soc-in" data-id="'+b.id+'" value="'+b.soc+'">'+
+        (needsCharge(b)?' <span title="at/below the '+RESERVE_SOC+'% reserve - needs charging" style="color:var(--red);font-size:10px;">\u25CF</span>'
+          : chargeSoonFlag(b)?' <span title="approaching the '+RESERVE_SOC+'% reserve" style="color:var(--amber);font-size:10px;">\u25CF</span>' : '')+'</td>' +
+      '<td style="color:var(--muted);">'+b.soh+'%</td>' +
+      '<td>'+rng+' km'+trend+'</td>' +
+      '<td><span class="pill '+pillClass(cat)+'">'+cat+'</span></td>' +
+      '<td title="set via shed-exit checklist">'+icon(b.interiorClean?'check':'x')+'</td>' +
+      '<td title="set via shed-exit checklist">'+icon(b.exteriorClean?'check':'x')+'</td>' +
+      '<td><button class="iconbtn oil-btn" data-id="'+b.id+'">'+icon(b.oilCheck?'check':'x')+'</button></td>' +
+      '<td><button class="iconbtn eng-btn" data-id="'+b.id+'">'+icon(b.engineCheck?'check':'x')+'</button></td>' +
+      '<td><button class="iconbtn mtc-btn" data-id="'+b.id+'">'+(b.maintenance?icon('wrench'):'-')+'</button></td>' +
+    '</tr>';
+  }).join('');
+
+  var routeRows = routes.map(function(r){
+    return '<tr><td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">' +
+        '<span class="live-dot small'+(liveOn?'':' off')+'"></span>'+r.code+'</div>' +
+        '<div style="color:var(--muted);font-size:11px;padding-left:12px;">'+r.name+'</div></td>' +
+      '<td><input type="number" step="0.1" class="req-in wide" data-id="'+r.id+'" value="'+r.reqRange+'"></td>' +
+      '<td><span class="pill '+pillClass(r.category)+'">'+r.category+'</span></td>' +
+      '<td>'+r.schedules+'</td></tr>';
+  }).join('');
+
+  return '<div class="section grid2">' +
+    '<div class="panel"><div class="panel-head"><span>Fleet status</span><span style="color:var(--muted);font-weight:400;font-size:11px;">battery is live &amp; predictive, others are sample flags</span></div>' +
+      '<div class="tablewrap"><table><thead><tr><th>Bus</th><th>Batt%</th><th>SOH</th><th>Range</th><th>Cat</th><th>Int</th><th>Ext</th><th>Oil</th><th>Eng</th><th>Mtc</th></tr></thead>' +
+      '<tbody>'+fleetRows+'</tbody></table></div></div>' +
+    '<div class="panel"><div class="panel-head"><span>Chandapura routes</span><span style="color:var(--muted);font-weight:400;font-size:11px;">from Form 4 Consolidation</span></div>' +
+      '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Req. range(km)</th><th>Category</th><th>Schedules</th></tr></thead>' +
+      '<tbody>'+routeRows+'</tbody></table></div></div>' +
+  '</div>';
+}
+
+function renderBestBusFinder(){
+  if(!bestBusRouteId) bestBusRouteId = routes[0].id;
+  var route = routes.filter(function(r){return r.id===bestBusRouteId;})[0];
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var allowed = MATCH_TABLE[route.category][slot.cat];
+  var pref = allowed.slice().sort(function(x,y){ return CAT_RANK[x]-CAT_RANK[y]; });
+
+  var ranked = fleet.map(function(b){
+    var elig = isEligible(b);
+    var cat = rangeCategory(effectiveRange(b));
+    var catOk = allowed.indexOf(cat)!==-1;
+    var rangeOk = effectiveRange(b) >= route.reqRange;
+    var fits = elig && catOk && rangeOk;
+    var reason = '';
+    if(!elig){
+      if(b.maintenance) reason = 'in maintenance';
+      else if(!b.interiorClean || !b.exteriorClean) reason = 'not cleared on the shed checklist';
+      else if(!b.oilCheck) reason = 'oil sensor fault';
+      else if(!b.engineCheck) reason = 'engine sensor fault';
+      else reason = 'at '+b.soc+'% - at/below the '+RESERVE_SOC+'% reserve, needs charging';
+    } else if(!catOk){
+      reason = 'Category '+cat+' - this route needs '+allowed.join('/');
+    } else if(!rangeOk){
+      reason = 'effective range '+effectiveRange(b)+'km - this route needs '+route.reqRange+'km';
+    }
+    return {bus:b, cat:cat, fits:fits, rank: fits ? pref.indexOf(cat) : 99, reason:reason};
+    return {bus:b, cat:cat, fits:fits, rank: fits ? pref.indexOf(cat) : 99, score:matchScore(b, route), reason:reason};
+  });
+  var okList = ranked.filter(function(r){return r.fits;}).sort(function(a,b){
+    if(b.score!==a.score) return b.score-a.score;
+    if(a.rank!==b.rank) return a.rank-b.rank;
+    return b.bus.soc-a.bus.soc;
+  });
+  var badList = ranked.filter(function(r){return !r.fits;});
+
+  var options = routes.map(function(r){ return '<option value="'+r.id+'"'+(r.id===bestBusRouteId?' selected':'')+'>'+r.code+' ('+r.category+')</option>'; }).join('');
+  var rows = okList.map(function(r, idx){
+    var badge = idx===0 ? '<span class="pill pill-simple">Perfect match</span>' : '<span class="pill pill-standard">Also works</span>';
+    var margin = Math.round((effectiveRange(r.bus) - route.reqRange)*10)/10;
+    return '<div class="assign-row"><div style="display:flex;gap:8px;align-items:center;">'+badge+
+      '<b class="mono">'+r.bus.id+'</b><span style="color:var(--muted);font-size:11px;">'+r.bus.soc+'% battery, '+busRange(r.bus)+'km range &middot; +'+margin+'km over this route\'s '+route.reqRange+'km</span></div>'+
+      '<b class="mono">'+r.bus.id+'</b><span style="color:var(--muted);font-size:11px;">'+r.bus.soc+'% battery, '+busRange(r.bus)+'km range &middot; +'+margin+'km over this route\'s '+route.reqRange+'km</span></div>'+
+      '<span class="match-score">Match '+r.score+'/100</span><span class="pill '+pillClass(r.cat)+'">'+r.cat+'</span></div>';
+  }).join('');
+  var badRows = badList.map(function(r){
+    return '<div class="gap-item" style="padding-left:0;display:flex;gap:5px;align-items:center;">'+icon('x')+r.bus.id+' - '+r.reason+'</div>';
+  }).join('');
+
+  return '<div class="section"><div class="section-label" style="justify-content:space-between;">'+
+      '<span>Best bus for this route</span><select id="bbRouteSel">'+options+'</select></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+route.code+' is a <span class="pill '+pillClass(route.category)+'">'+route.category+'</span> route - needs Category '+allowed.join('/')+' during '+slot.label+' ('+slot.cat+')</div>'+
+    (rows || '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus for this route right now</div></div>') +
+    (badRows ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Not eligible ('+badList.length+')</div>'+badRows+'</div>' : '') +
+  '</div>';
+}
+
+function renderDepotAvailabilityTable(){
+  var route = routes.filter(function(r){return r.id===bestBusRouteId;})[0];
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var allowed = MATCH_TABLE[route.category][slot.cat];
+
+  var rows = fleet.map(function(b){
+    var trip = trips[b.id];
+    var inDepot = !trip || trip.done;
+    var elig = isEligible(b);
+    var cat = rangeCategory(effectiveRange(b));
+    var catOk = allowed.indexOf(cat)!==-1;
+    var margin = Math.round((effectiveRange(b)-route.reqRange)*10)/10;
+    var rangeOk = margin>=0;
+    var fits = inDepot && elig && catOk && rangeOk;
+
+    var why;
+    if(!inDepot) why = 'out on '+trip.routeCode+' - '+trip.progress+'% through the trip, not back in the shed yet';
+    else if(b.maintenance) why = 'held for maintenance';
+    else if(!b.interiorClean || !b.exteriorClean) why = 'not cleared on the shed checklist';
+    else if(!b.oilCheck) why = 'oil sensor fault';
+    else if(!b.engineCheck) why = 'engine sensor fault';
+    else if(needsCharge(b)) why = 'at '+b.soc+'% - at/below the '+RESERVE_SOC+'% reserve';
+    else if(!catOk) why = 'Category '+cat+' - '+slot.label+' ('+slot.cat+') on a '+route.category+' route needs '+allowed.join('/');
+    else if(!rangeOk) why = 'short by '+Math.abs(margin)+'km on effective range for this route';
+    else why = 'Category '+cat+' clears '+slot.cat+' on this '+route.category+' route, +'+margin+'km to spare';
+
+    var loss;
+    if(fits) loss = '<span style="color:var(--muted);">\u2014</span>';
+    else if(inDepot && elig && catOk && !rangeOk) loss = '<span style="color:var(--red);font-weight:600;">\u20B9'+costPerUnplannedCharge.toLocaleString('en-IN')+'</span> if sent anyway - a '+Math.abs(margin)+'km gap is what usually turns into an Unplanned charge mid-route';
+    else loss = '<span style="color:var(--muted);">not sendable, no loss to price</span>';
+
+    return {bus:b, cat:cat, inDepot:inDepot, fits:fits, why:why, loss:loss, margin:margin};
+  }).sort(function(a,b){
+    if(a.fits!==b.fits) return a.fits ? -1 : 1;
+    if(a.inDepot!==b.inDepot) return a.inDepot ? -1 : 1;
+    return b.margin-a.margin;
+  });
+
+  var depotByGrade = {A:0,B:0,C:0};
+  rows.forEach(function(r){ if(r.inDepot) depotByGrade[r.cat] = (depotByGrade[r.cat]||0)+1; });
+
+  var bestRow = rows.filter(function(r){return r.fits;})[0];
+  var bestPickLine = bestRow
+    ? '<div class="assign-row" style="background:var(--green-dim);border:1px solid var(--green-bd);border-radius:8px;margin-bottom:10px;">'+
+        '<span>'+icon('spark')+' Best pick for <b>'+route.name+'</b> ('+route.code+') during '+slot.label+': <b>'+bestRow.bus.id+'</b> <span class="pill '+pillClass(bestRow.cat)+'">'+bestRow.cat+'</span> <span style="font-size:11.5px;color:var(--green);">&mdash; '+bestRow.why+'</span></span>'+
+        '<button type="button" class="btn-primary manual-assign-btn" data-bus="'+bestRow.bus.id+'" data-route="'+route.id+'" style="padding:4px 10px;font-size:11px;white-space:nowrap;">'+icon('spark')+' Assign</button>'+
+      '</div>'
+    : '<div class="assign-row" style="background:var(--red-dim);border:1px solid var(--red-bd);border-radius:8px;margin-bottom:10px;">'+
+        '<span>'+icon('warn')+' No bus in the depot clears <b>'+route.name+'</b> ('+route.code+') for '+slot.label+' right now'+(rows[0] ? ' &mdash; closest is '+rows[0].bus.id+': '+rows[0].why : '')+'</span>'+
+      '</div>';
+
+  var trs = rows.map(function(r){
+    return '<tr>'+
+      '<td class="mono">'+r.bus.id+'</td>'+
+      '<td><span class="pill '+pillClass(r.cat)+'">'+r.cat+'</span></td>'+
+      '<td>'+(r.inDepot ? '<span style="color:var(--green);">'+icon('check')+' in depot</span>' : '<span style="color:var(--amber);">'+icon('clock')+' on route</span>')+'</td>'+
+      '<td>'+(r.margin>=0?'+':'')+r.margin+'km</td>'+
+      '<td style="font-size:11.5px;color:'+(r.fits?'var(--muted)':'var(--text)')+';">'+r.why+'</td>'+
+      '<td style="font-size:11.5px;">'+r.loss+'</td>'+
+      '<td>'+(r.fits ? '<button type="button" class="btn-primary manual-assign-btn" data-bus="'+r.bus.id+'" data-route="'+route.id+'" style="padding:4px 10px;font-size:11px;white-space:nowrap;">'+icon('spark')+' Assign</button>' : '<span style="color:var(--muted);font-size:11px;">\u2014</span>')+'</td>'+
+    '</tr>';
+  }).join('');
+
+  return '<div class="section"><div class="section-label"><span>Depot availability &amp; route fit &middot; '+route.code+' during '+slot.label+' <span style="color:var(--muted);font-weight:400;font-size:11px;">(follows the route/slot picked above)</span></span></div>'+
+    bestPickLine +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">In the depot right now, by grade: <span class="pill pill-a">A '+depotByGrade.A+'</span> <span class="pill pill-b">B '+depotByGrade.B+'</span> <span class="pill pill-c">C '+depotByGrade.C+'</span></div>'+
+    '<div class="panel"><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Grade</th><th>In depot</th><th>Range fit</th><th>Why</th><th>Loss if sent anyway</th><th>Action</th></tr></thead><tbody>'+trs+'</tbody></table></div></div>'+
+  '</div>';
+}
+
+function renderPlanningSection(){
+  var driverRows = drivers.map(function(d){
+    var statusClass = d.status==='Available' ? 'pill-avail' : (d.status==='On Leave' ? 'pill-leave' : 'pill-offduty');
+    var gradeClass = d.grade==='Senior' ? 'pill-senior' : 'pill-standard';
+    var opts = ['Available','Off Duty','On Leave'].map(function(s){ return '<option value="'+s+'"'+(s===d.status?' selected':'')+'>'+s+'</option>'; }).join('');
+    return '<tr><td class="mono">'+d.id+'</td><td><span class="pill '+gradeClass+'">'+d.grade+'</span></td>' +
+      '<td><select class="drv-status-sel" data-id="'+d.id+'">'+opts+'</select></td></tr>';
+  }).join('');
+
+  var summaryHtml;
+  if(!daySummary){
+    summaryHtml = '<div class="summarybox">Checks every slot against the current fleet and driver roster - run it to see where the day is tight.</div>' +
+      '<button class="btn-secondary" id="dayBtn" style="margin-top:10px;">'+icon('grid')+' Run full-day analysis</button>';
+  } else {
+    summaryHtml = '<table><thead><tr><th>Slot</th><th>Category</th><th>Covered</th><th>Gaps</th></tr></thead><tbody>' +
+      daySummary.map(function(s){
+        return '<tr><td>'+s.slot.label+'</td><td>'+s.slot.cat+'</td><td>'+s.covered+'/'+routes.length+'</td>' +
+          '<td><span class="pill '+(s.gaps>0?'pill-complex':'pill-simple')+'">'+s.gaps+'</span></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<button class="btn-secondary" id="dayBtn" style="margin-top:10px;">'+icon('grid')+' Re-run</button>';
+  }
+
+  return '<div class="section grid2">' +
+    '<div class="panel"><div class="panel-head"><span>Driver roster</span><span style="color:var(--muted);font-weight:400;font-size:11px;">illustrative - not in your files</span></div>' +
+      '<div class="tablewrap"><table><thead><tr><th>Driver</th><th>Grade</th><th>Status</th></tr></thead><tbody>'+driverRows+'</tbody></table></div></div>' +
+    '<div class="panel"><div class="panel-head"><span>Full-day coverage</span></div><div style="padding:14px 16px;">'+summaryHtml+'</div></div>' +
+  '</div>';
+}
+
+function renderChartAndRun(){
+  var counts = {A:0,B:0,C:0};
+  fleet.filter(isEligible).forEach(function(b){ counts[rangeCategory(effectiveRange(b))]++; });
+  var max = Math.max(counts.A,counts.B,counts.C,1);
+  var lowBatt = fleet.filter(needsCharge).length;
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  function bar(label,val,color){
+    return '<div class="bar-row"><div class="bar-label">'+label+'</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:'+(val/max*100)+'%;background:'+color+';"></div></div>' +
+      '<div class="bar-value">'+val+'</div></div>';
+  }
+  return '<div class="section chartrow">' +
+    '<div><div class="section-label">Dispatch-ready buses by range category</div>' +
+      bar('Category A (&gt;120km)', counts.A, '#059669') + bar('Category B (100-120km)', counts.B, '#0284c7') + bar('Category C (&lt;100km)', counts.C, '#94a3b8') +
+      (lowBatt>0 ? '<div style="font-size:11px;color:var(--red);margin-top:8px;display:flex;align-items:center;gap:5px;">'+icon('spark')+lowBatt+' bus'+(lowBatt>1?'es':'')+' held back at/below the '+RESERVE_SOC+'% reserve - excluded from these counts, needs charging</div>' : '') +
+    '</div>' +
+    '<div class="runbox">' + icon('spark') +
+      '<div style="font-size:13px;color:#334155;">Match '+routes.length+' routes against '+fleet.filter(isEligible).length+' buses and '+drivers.filter(function(d){return d.status==='Available';}).length+' drivers for <b style="color:var(--accent);">'+slot.label+' ('+slot.cat+')</b></div>' +
+      '<button class="btn-primary" id="runBtn">Run allocation</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderResult(){
+  if(!result) return '';
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var rows = result.assignments.map(function(a){
+    var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
+    var drv = drivers.filter(function(d){return d.id===a.driverId;})[0];
+    var cat = rangeCategory(effectiveRange(bus));
+    var busOptions = fleet.filter(isEligible).map(function(b){
+      return '<option value="'+b.id+'"'+(b.id===bus.id?' selected':'')+'>'+b.id+' - '+rangeCategory(effectiveRange(b))+' - '+b.soc+'%</option>';
+    }).join('');
+    var drvOptions = drivers.filter(function(d){return d.status==='Available';}).map(function(d){
+      return '<option value="'+d.id+'"'+(d.id===drv.id?' selected':'')+'>'+d.id+' - '+d.grade+'</option>';
+    }).join('');
+    return '<div class="assign-row"><div style="display:flex;gap:8px;align-items:center;"><span class="pill '+pillClass(a.route.category)+'">'+a.route.category+'</span>' +
+      '<b>'+a.route.code+'</b><span style="color:var(--muted);font-size:11px;">'+a.route.name+'</span></div>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+      '<select class="reassign-bus-sel" data-route="'+a.route.id+'">'+busOptions+'</select>' +
+      '<span class="pill '+pillClass(cat)+'">'+cat+'</span>' +
+      '<select class="reassign-drv-sel" data-route="'+a.route.id+'">'+drvOptions+'</select>' +
+      '<span class="pill '+(drv.grade==='Senior'?'pill-senior':'pill-standard')+'">'+drv.grade+'</span>' +
+      '</div></div>';
+  }).join('');
+
+  var gapsHtml = '';
+  if(result.gaps.length>0){
+    gapsHtml = '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus+driver pair for '+result.gaps.length+' route'+(result.gaps.length>1?'s':'')+'</div>' +
+      result.gaps.map(function(g){
+        var reasonText = g.reason==='driver' ? 'bus is fine, but no qualified driver is free' :
+                          g.reason==='bus-range' ? 'category-matching buses exist, but none have enough real range left for this route\'s '+g.route.reqRange+'km - charge one up' :
+                          g.reason==='bus' ? 'no eligible bus is free' : 'no bus and no qualified driver free';
+        return '<div class="gap-item">'+g.route.code+' needs Category '+MATCH_TABLE[g.route.category][slot.cat].join('/')+' bus + '+DRIVER_MATCH[g.route.category].join('/')+' driver - '+reasonText+'.</div>';
+      }).join('') + '</div>';
+  }
+  return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
+    '<span>Allocation result - '+slot.label+' ('+slot.cat+')</span>' +
+    '<span style="color:var(--muted);font-weight:400;">'+result.assignments.length+' assigned, '+result.gaps.length+' gaps</span></div>' +
+    rows + gapsHtml + '</div>';
+}
+
+function renderTripMonitor(){
+  var ids = Object.keys(trips);
+  if(ids.length===0) return '';
+  var active = ids.filter(function(id){return !trips[id].done;}).length;
+  var rows = ids.map(function(busId){
+    var t = trips[busId];
+    var tireStyle = t.tires==='Low' ? 'color:var(--red);font-weight:700;' : 'color:var(--green);';
+    return '<tr><td class="mono">'+busId+'</td><td>'+t.routeCode+'</td>' +
+      '<td><div style="display:flex;align-items:center;gap:6px;"><div class="bar-track" style="width:80px;"><div class="bar-fill" style="width:'+t.progress+'%;background:'+(t.done?'#059669':'var(--accent)')+';"></div></div><span style="font-size:11px;">'+t.progress+'%'+(t.done?' done':'')+'</span></div></td>' +
+      '<td>'+t.speed+' km/h</td>' +
+      '<td>'+t.cabinTemp+'&deg;C</td>' +
+      '<td style="'+tireStyle+'">'+t.tires+'</td>' +
+      '<td>'+(t.harshEvents>0 ? '<span class="pill pill-complex">'+t.harshEvents+'</span>' : '0')+'</td></tr>';
+  }).join('');
+  return '<div class="section"><div class="section-label">'+icon('gauge')+'Live trip monitor &middot; '+active+' bus'+(active===1?'':'es')+' currently driving <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:4px;">(simulated telematics, in the spirit of Ashok Leyland iAlert)</span></div>' +
+    '<div class="panel"><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Route</th><th>Trip progress</th><th>Speed</th><th>Cabin</th><th>Tyres</th><th>Harsh events</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+}
+
+function renderFootnote(){
+  return '<p class="footnote">Your Proposed Solution diagram starts with "<b>SOH</b>, SOC &amp; Range Estimation" - State of Health, distinct from charge level, is how much of a battery\u2019s original capacity remains after wear. Each bus now carries its own SOH%, so its true max range is '+RATED_RANGE+'km &times; SOH, and current range is that times battery %. Two buses at the same charge no longer get treated as equally capable if one\u2019s pack has aged more - the charge-soon/charge-now thresholds and the predictive trend model both follow from this per-bus max, not a fleet-wide constant. The shed-exit checklist uses the exact item list from your OHM_004 exterior/interior check sheet - it is not a re-typed summary, it is the real form made interactive. A bus\u2019s Int/Ext status in the fleet table is derived from this checklist (zero flagged items = clean); ticking a defect there removes that bus from the eligible pool everywhere else. Bus range category: A&gt;120km / B 100-120km / C&lt;100km (your guidelines slide). Route category from single-charge required range: Simple &le;108km / Moderate 108-125km / Complex &gt;125km (from Form 4 Consolidation, which labels this field Standard/Moderate/Complex). Driver grade follows guideline point 4, "bus-route-driver matching on the right time": Complex routes need a Senior driver, Simple/Moderate accept Senior or Standard. A route is only fully covered when an eligible bus AND a qualified, on-duty driver are both free. Battery is the only live-simulated field; SOH, oil, engine, maintenance, service odometer and the driver roster are illustrative sample data - wire in your telematics and crew-roster feeds to make the rest real-time too.</p>' +
+    '<p class="footnote">The Defect capture &amp; prioritization section (your second slide deck) turns that same OHM_004 checklist from a live-only toggle into an actual log: flagging an item opens a row in the Defect log below with a timestamp and a severity, and clearing it - or hitting its Close button - closes that row, so nothing there is invented on top of what the checklist already tracks. Severity (High/Medium) is my own read of which items are safety- or visibility-critical (lamps, windshields, doors, emergency window, grab handles) versus cosmetic (body panels, floor, seat trim) - edit HIGH_SEV_ITEMS if your depot grades severity differently. Your slide scopes this to 7 depots; only Chandapura has real fleet data in your files, so it is the one live depot shown, and the other six sit as "pending pilot rollout" rather than invented numbers, in the spirit of your own Remarks column ("start with a pilot ... and expand"). "Top contributing defect types" is a cumulative count since the app loaded, not a real day-bucketed view - wire in dated defect timestamps for the actual daily read your Objective slide asks for. There is no "assign to technician" step, since no maintenance-crew roster exists in your files the way the driver roster does - add one and I can wire that step in too.</p>' +
+    '<p class="footnote">Your battery note asked for two different checks, so I built them separately rather than combined. First: a bus\u2019s real range now has to cover a route\u2019s exact km, not just its A/B/C bucket - bucket-matching alone could let a bus barely inside Category A get sent on a route near the top of that bucket\u2019s range, so the allocation engine and Best Bus Finder both now check effective range against the route\u2019s reqRange directly, and show the km margin. Second: once a bus\u2019s own charge drops to '+RESERVE_SOC+'% (your number, RESERVE_SOC), it drops out of the eligible pool entirely - for any route - until it\u2019s charged back up; that is the new "Needs charging" KPI, the red dot on the fleet table, and the shed-checklist panel. I deliberately did not also require every route to leave '+RESERVE_SOC+'% spare after finishing it: your longest routes (128-138km) would leave less than that even for a fully-charged, top-condition bus against your '+RATED_RANGE+'km rated range, so stacking a post-route reserve on top of the charge floor would make several routes permanently unservable by any bus in the fleet. If your ops team has a real per-route reserve figure, tell me and I\u2019ll add it as a second check on top of this. "Unplanned charges" in the Defect overview is a third, separate thing: a bus that was already dispatched and, through the live-simulated in-trip drain, actually hits the '+RESERVE_SOC+'% floor before finishing its route - each one auto-logs into the Defect log as a High-severity item, since a forced mid-route charging stop is the "unwanted expense" you described. It is a count, not a rupee figure - I do not have your real per-stop cost or downtime numbers, so multiply in your own to get a currency total. WARN_SOC ('+WARN_SOC+'%, the "charge soon" band) is my own choice, not from your files - edit it freely.</p>' +
+    '<p class="footnote">Three more pieces built off the same expense-reduction ask. "Unplanned charges by route" breaks the count above down by route code instead of one fleet-wide number, so you can see whether it\u2019s really your longest routes doing the damage or just a couple of tired packs - it only fills in as the live feed actually produces events, same as the other bars on this page. The shed-exit panel now also checks a bus against its actually assigned route, once you\u2019ve run an allocation, instead of only the flat '+RESERVE_SOC+'% reserve - a bus that\u2019s short on effective range for its assigned route gets stopped at Start engine, in the shed, rather than showing up as an Unplanned charge after it\u2019s already on the road. "Est. cost" turns the Unplanned charges count into a rupee figure using the input next to it - \u20B9'+costPerUnplannedCharge+' is a placeholder, not a real number from your files, so replace it with your depot\u2019s actual per-stop cost and the total updates live. Not built yet: penalty-risk tracking off your Defect slide\u2019s "Resulted Penalty" language - I don\u2019t have that slide\u2019s exact wording in front of me, so I held off rather than guess at what counts as a penalty and when.</p>' +
+    '<p class="footnote">The shed panel now also shows a charge-time estimate next to the battery line - roughly an hour for 0-80% and another hour-plus for the last 20% as the rate tapers, which is Switch Mobility\u2019s own published curve for this platform\u2019s dual-gun DC fast charger, not a number from your files; edit the two constants in minutesToCharge if your depot\u2019s chargers run differently. When a bus is short on range for its assigned route, the same line also shows how many minutes of charging would close that specific gap. I have not added a Fitness Certificate check - if "fitness" meant that, I don\u2019t have any FC-expiry data for your fleet to start from, so tell me the format (an expiry date per bus is enough) and I will wire it in as a real eligibility gate next to the checklist, the same way the real depots require it.</p>' +
+    '<p class="footnote">The new "Depot availability &amp; route fit" table pulls together everything above into one row per bus, for whichever route and slot are picked in Best bus for this route above it. "In depot" is not a separate GPS feed - it reads the same live trip simulation the Trip monitor uses, so a bus mid-route shows as "on route" with its live progress %, and only counts as back in the depot once that trip is marked done. "Why" walks the same checks in the same order isEligible and canServeRoute already use, just written out per bus instead of only for the ones that fail. "Loss if sent anyway" only prices a bus that is otherwise sendable - in the depot, checklist clear, right category - but short on range for this specific route; it reuses the \u20B9 per unplanned charge figure from the Defect overview panel, since that is the same event this would trigger. It is not shown for buses that are unsendable for other reasons (maintenance, checklist, low charge) since sending those was never really an option to weigh a loss against.</p>' +
+    '<p class="footnote">Two more things on that table. The "In the depot right now, by grade" line above it counts only buses that pass the same in-depot check as the rows below - it will read differently for every route/slot you pick, since a bus on-route for one route is still on-route no matter which route you are currently looking at. Second, every sendable row now has an Assign button: pick one and it books the best free driver for that route\\u2019s grade, adds the pairing to the result below, and puts that bus straight into the Trip monitor as departed - a way to hand-pick one bus without running the full allocator for the whole slot. It does not reserve the driver against a later manual pick beyond checking who is already used in the current result, and running the full Run allocation afterwards still recomputes the whole slot from scratch and will overwrite anything picked here - treat the two as alternatives for a given slot, not something to mix.</p>' +
+    '<p class="footnote">The table now leads with a "Best pick" line naming the single top-ranked bus for whichever route and slot are selected - it is just the first row of the table below, pulled out and made explicit, with the same Assign button on it. When nothing in the depot currently clears the route, it says so and names the closest option instead of just leaving the section looking empty.</p>';
+}
+
+function bindEvents(){
+  document.getElementById('resetBtn').onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
+  var exportBtn = document.getElementById('exportBtn');
+  if(exportBtn) exportBtn.onclick = exportCloudBackup;
+  var importBtn = document.getElementById('importBtn');
+  var importFile = document.getElementById('importFile');
+  if(importBtn && importFile){ importBtn.onclick = function(){ importFile.click(); }; importFile.onchange = function(){ importCloudBackup(this.files[0]); this.value=''; }; }
+  var costPerChargeIn = document.getElementById('costPerChargeIn');
+  if(costPerChargeIn) costPerChargeIn.onchange = function(){ costPerUnplannedCharge = Math.max(0, Number(this.value)||0); render(); };
+  var inspectSel = document.getElementById('inspectSel');
+  if(inspectSel) inspectSel.onchange = function(){ inspectBusId = this.value; render(); };
+  var startEngineBtn = document.getElementById('startEngineBtn');
+  if(startEngineBtn && !startEngineBtn.disabled){
+    startEngineBtn.onclick = function(){
+      logEvent(inspectBusId+' engine started - shed checklist clear, cleared for departure');
+      var cl = getChecklist(inspectBusId);
+      EXTERIOR_ITEMS.forEach(function(i){ cl.ext[i] = false; });
+      INTERIOR_ITEMS.forEach(function(i){ cl.int[i] = false; });
+      syncBusFromChecklist(inspectBusId);
+      logEvent(inspectBusId+' checklist reset - full re-inspection required before next departure');
+      render();
+    };
+  }
+  var markAllClearBtn = document.getElementById('markAllClearBtn');
+  if(markAllClearBtn){
+    markAllClearBtn.onclick = function(){
+      var cl = getChecklist(inspectBusId);
+      var closedCount = 0;
+      EXTERIOR_ITEMS.forEach(function(i){ if(!cl.ext[i]){ closeDefectRecord(inspectBusId,i); closedCount++; } cl.ext[i] = true; });
+      INTERIOR_ITEMS.forEach(function(i){ if(!cl.int[i]){ closeDefectRecord(inspectBusId,i); closedCount++; } cl.int[i] = true; });
+      syncBusFromChecklist(inspectBusId);
+      if(closedCount>0) logEvent(inspectBusId+' - '+closedCount+' defect'+(closedCount>1?'s':'')+' cleared, all clear');
+      render();
+    };
+  }
+  var bbRouteSel = document.getElementById('bbRouteSel');
+  if(bbRouteSel) bbRouteSel.onchange = function(){ bestBusRouteId = this.value; render(); };
+  document.querySelectorAll('.checklist-item').forEach(function(el){
+    el.onclick = function(){
+      var prefix = el.getAttribute('data-prefix'); var item = el.getAttribute('data-item');
+      var area = prefix==='ext' ? 'Exterior' : 'Interior';
+      var cl = getChecklist(inspectBusId);
+      var bucket = prefix==='ext' ? cl.ext : cl.int;
+      bucket[item] = !bucket[item];
+      if(bucket[item]){ closeDefectRecord(inspectBusId, item); logEvent(inspectBusId+' defect closed - '+item); }
+      else { var sev = defectSeverity(item); logDefect(inspectBusId, area, item, sev); logEvent(inspectBusId+' defect logged - '+item+' ('+sev+' severity)'); }
+      syncBusFromChecklist(inspectBusId);
+      result = null; render();
+    };
+  });
+  document.querySelectorAll('.close-def-btn').forEach(function(el){
+    el.onclick = function(){
+      var id = el.getAttribute('data-id');
+      var d = defectLog.filter(function(x){return x.id===id;})[0];
+      if(d && d.status==='Open'){
+        d.status='Closed'; d.closedAt=nowStr();
+        if(d.area==='Exterior' || d.area==='Interior'){
+          var cl = checklistState[d.busId];
+          var bucket = cl ? (d.area==='Exterior'?cl.ext:cl.int) : null;
+          if(bucket && (d.item in bucket)){ bucket[d.item]=true; syncBusFromChecklist(d.busId); }
+        }
+        logEvent(d.busId+' defect closed - '+d.item);
+        render();
+      }
+    };
+  });
+  document.querySelectorAll('.manual-assign-btn').forEach(function(el){
+    el.onclick = function(){
+      manualAssign(el.getAttribute('data-bus'), el.getAttribute('data-route'));
+    };
+  });
+  var logDefectBtn = document.getElementById('logDefectBtn');
+  if(logDefectBtn){
+    logDefectBtn.onclick = function(){
+      var busId = document.getElementById('defBusSel').value;
+      var desc = document.getElementById('defDescIn').value.trim();
+      var sev = document.getElementById('defSevSel').value;
+      if(!desc) return;
+      logDefect(busId, 'Reported', desc, sev);
+      logEvent(busId+' defect logged - '+desc+' ('+sev+' severity)');
+      render();
+    };
+  }
+  var liveBtn = document.getElementById('liveBtn');
+  if(liveBtn) liveBtn.onclick = toggleLive;
+  document.querySelectorAll('.slot').forEach(function(el){ el.onclick = function(){ slotId = el.getAttribute('data-slot'); result = null; render(); }; });
+  var runBtn = document.getElementById('runBtn');
+  if(runBtn) runBtn.onclick = function(){ result = computeAllocation(); startTrips(result.assignments); render(); };
+  var dayBtn = document.getElementById('dayBtn');
+  if(dayBtn) dayBtn.onclick = runFullDay;
+  document.querySelectorAll('.soc-in').forEach(function(el){ el.onchange = function(){ updateBus(el.getAttribute('data-id'),'soc',Number(el.value)); }; });
+  document.querySelectorAll('.oil-btn').forEach(function(el){ el.onclick = function(){ toggleBus(el.getAttribute('data-id'),'oilCheck'); }; });
+  document.querySelectorAll('.eng-btn').forEach(function(el){ el.onclick = function(){ toggleBus(el.getAttribute('data-id'),'engineCheck'); }; });
+  document.querySelectorAll('.mtc-btn').forEach(function(el){ el.onclick = function(){ toggleBus(el.getAttribute('data-id'),'maintenance'); }; });
+  document.querySelectorAll('.req-in').forEach(function(el){
+    el.onchange = function(){
+      var r = routes.filter(function(r){return r.id===el.getAttribute('data-id');})[0];
+      r.reqRange = Number(el.value); r.category = routeCategory(r.reqRange); result = null; daySummary = null; render();
+    };
+  });
+  document.querySelectorAll('.drv-status-sel').forEach(function(el){
+    el.onchange = function(){
+      var d = drivers.filter(function(d){return d.id===el.getAttribute('data-id');})[0];
+      d.status = el.value; result = null; daySummary = null; render();
+    };
+  });
+  document.querySelectorAll('.reassign-bus-sel').forEach(function(el){
+    el.onchange = function(){
+      var a = result.assignments.filter(function(a){return a.route.id===el.getAttribute('data-route');})[0];
+      a.busId = el.value; render();
+    };
+  });
+  document.querySelectorAll('.reassign-drv-sel').forEach(function(el){
+    el.onchange = function(){
+      var a = result.assignments.filter(function(a){return a.route.id===el.getAttribute('data-route');})[0];
+      a.driverId = el.value; render();
+    };
+  });
+}
+function updateBus(id, field, value){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = value; render(); }
+function toggleBus(id, field){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = !b[field]; render(); }
+
+restoreCloudReadyState();
+render();
+</script>
+</body>
+</html>
