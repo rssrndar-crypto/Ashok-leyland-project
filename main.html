@@ -121,6 +121,7 @@
   .cloud-metric-label{font-size:10.5px;color:var(--muted);margin-bottom:4px;}.cloud-metric-value{font-size:17px;font-weight:800;color:#0f172a;}
   .cloud-metric-note{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.35;}.cloud-bar{height:6px;background:#e4edf5;border-radius:5px;overflow:hidden;margin-top:7px;}.cloud-bar-fill{height:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);border-radius:5px;}
   .cloud-routes{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:12px;}.cloud-list{background:#fff;border:1px solid #d5e1ec;border-radius:8px;padding:11px 12px;}.cloud-list-title{font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px;}.cloud-route-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border-soft);padding:7px 0;font-size:11px;}.cloud-route-row:first-of-type{border-top:0;}.cloud-depots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}.cloud-depot{border:1px solid #d5e1ec;border-radius:7px;background:#fff;padding:8px;font-size:10px;}.cloud-depot.live{border-color:var(--green-bd);background:var(--green-dim);}.cloud-depot b{display:block;font-size:10.5px;color:#0f172a;margin-bottom:3px;}
+  .cloud-insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:12px;}.cloud-insight{border:1px solid #d5e1ec;border-left:3px solid var(--accent);border-radius:8px;background:#fff;padding:10px 11px;}.cloud-insight.high{border-left-color:var(--red);}.cloud-insight.medium{border-left-color:var(--amber);}.cloud-insight-title{font-size:11px;font-weight:800;color:#0f172a;display:flex;justify-content:space-between;gap:7px;}.cloud-insight-text{font-size:10.5px;color:var(--muted);line-height:1.4;margin-top:5px;}.cloud-analysis-meta{font-size:10px;color:var(--muted);margin-top:8px;}
   @media(max-width:700px){.cloud-routes{grid-template-columns:1fr;}.cloud-depots{grid-template-columns:repeat(2,1fr);}}
   .login-shell{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 12% 12%,#eef2ff 0,#f8fafc 38%,#e8f4f2 100%);}
   .login-layout{width:min(920px,100%);display:grid;grid-template-columns:1.05fr .95fr;border:1px solid #d5deea;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(15,23,42,.14);}
@@ -382,6 +383,7 @@ var slotId = 't2';
 var bestBusRouteId = null;
 var result = null;
 var daySummary = null;
+var cloudAnalysisAt = null;
 
 var liveOn = false, liveTimer = null, lastSync = null, feedLog = [];
 function tickTrips(){
@@ -513,6 +515,19 @@ function renderCloudAnalytics(){
   var openDefects = defectLog.filter(function(d){return d.status==='Open';}).length;
   var availableDrivers = drivers.filter(function(d){return d.status==='Available';}).length;
   var confidence = Math.round((eligible/fleet.length*55)+(availableDrivers/drivers.length*25)+((fleet.length-openDefects)/fleet.length*20));
+  var lowBuses = fleet.filter(needsCharge).sort(function(a,b){return a.soc-b.soc;});
+  var blocked = fleet.filter(function(b){return b.maintenance || !b.interiorClean || !b.exteriorClean || !b.oilCheck || !b.engineCheck;});
+  var serviceDue = fleet.filter(function(b){return b.odoSinceService>=SERVICE_INTERVAL_KM;});
+  var selectedSlot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var slotResult = computeAllocationFor(selectedSlot.cat);
+  var insights = [
+    {level:lowBuses.length?'high':'normal', title:'Energy readiness', text:lowBuses.length ? lowBuses[0].id+' is at '+lowBuses[0].soc+'% and should be queued for charging before dispatch.' : 'All buses are above the '+RESERVE_SOC+'% charge floor.'},
+    {level:slotResult.gaps.length?'high':'normal', title:'Coverage outlook', text:slotResult.gaps.length ? slotResult.gaps.length+' route'+(slotResult.gaps.length===1?'':'s')+' need attention for '+selectedSlot.label+'.' : 'All '+routes.length+' routes have a qualified bus and driver for '+selectedSlot.label+'.'},
+    {level:blocked.length?'medium':'normal', title:'Shed readiness', text:blocked.length ? blocked.length+' bus'+(blocked.length===1?' is':'es are')+' blocked by inspection, sensor, or maintenance checks.' : 'The shed checklist and sensor gates are clear across the fleet.'},
+    {level:serviceDue.length?'medium':'normal', title:'Predictive service', text:serviceDue.length ? serviceDue.map(function(b){return b.id;}).join(', ')+' reached the '+SERVICE_INTERVAL_KM.toLocaleString('en-IN')+' km service threshold.' : 'No bus has crossed the current service threshold.'}
+  ];
+  var insightHtml = insights.map(function(insight){ return '<div class="cloud-insight '+insight.level+'"><div class="cloud-insight-title"><span>'+icon(insight.level==='high'?'warn':insight.level==='medium'?'clock':'check')+insight.title+'</span><span class="pill '+(insight.level==='high'?'pill-complex':insight.level==='medium'?'pill-moderate':'pill-simple')+'">'+(insight.level==='high'?'Priority':insight.level==='medium'?'Watch':'Clear')+'</span></div><div class="cloud-insight-text">'+insight.text+'</div></div>'; }).join('');
+  var analysisText = cloudAnalysisAt ? 'Last analysis '+pad(cloudAnalysisAt.getHours())+':'+pad(cloudAnalysisAt.getMinutes())+':'+pad(cloudAnalysisAt.getSeconds()) : 'Analysis not run yet - refresh for a new fleet snapshot';
   var demandRows = routes.slice().sort(function(a,b){return b.schedules-a.schedules;}).slice(0,4).map(function(route){
     var pressure = route.schedules>=25 ? 'High' : route.schedules>=15 ? 'Medium' : 'Normal';
     var pressureClass = pressure==='High' ? 'pill-complex' : pressure==='Medium' ? 'pill-moderate' : 'pill-simple';
@@ -529,7 +544,7 @@ function renderCloudAnalytics(){
       '<div class="cloud-metric"><div class="cloud-metric-label">Active cloud trips</div><div class="cloud-metric-value">'+activeTrips+'</div><div class="cloud-metric-note">Trip progress and battery drain monitored</div></div>'+
       '<div class="cloud-metric"><div class="cloud-metric-label">Open defect signals</div><div class="cloud-metric-value">'+openDefects+'</div><div class="cloud-metric-note">Prioritized for corrective action</div></div>'+
       '<div class="cloud-metric"><div class="cloud-metric-label">Fleet availability</div><div class="cloud-metric-value">'+eligible+'/'+fleet.length+'</div><div class="cloud-metric-note">Eligible buses for dispatch</div></div>'+
-    '</div><div class="cloud-routes"><div class="cloud-list"><div class="cloud-list-title">Schedule demand forecast</div>'+demandRows+'</div><div class="cloud-list"><div class="cloud-list-title">Multi-depot rollout status</div><div class="cloud-depots">'+depots+'</div></div></div>'+
+    '</div><div class="cloud-insights">'+insightHtml+'</div><div class="cloud-analysis-meta">'+analysisText+' &middot; Signals are calculated locally from fleet, allocation, defect, and driver data until a production cloud API is connected.</div><div class="cloud-routes"><div class="cloud-list"><div class="cloud-list-title">Schedule demand forecast</div>'+demandRows+'</div><div class="cloud-list"><div class="cloud-list-title">Multi-depot rollout status</div><div class="cloud-depots">'+depots+'</div></div></div>'+
   '</div></div>';
 }
 
@@ -1055,9 +1070,9 @@ function bindEvents(){
   var logoutBtn = document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.onclick = signOut;
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
-  if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ logEvent('Cloud analytics snapshot refreshed - fleet, route demand, defects and driver capacity analyzed'); render(); };
+  if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ cloudAnalysisAt = new Date(); logEvent('Cloud AI snapshot refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
   var costPerChargeIn = document.getElementById('costPerChargeIn');
   if(costPerChargeIn) costPerChargeIn.onchange = function(){ costPerUnplannedCharge = Math.max(0, Number(this.value)||0); render(); };
   var inspectSel = document.getElementById('inspectSel');
