@@ -615,7 +615,7 @@ function renderHeader(){
     '<div><h1>Smart Bus Scheduling - Chandapura Depot</h1>' +
     '<p class="sub">Battery, oil &amp; engine sensors, driver grade, route complexity, and defect capture - matched per your Schedule Allocation &amp; Defect Management Guidelines<br>' +
     '<span style="color:var(--accent-2);font-weight:600;">Fleet: SWITCH EiV12</span>&nbsp;<span style="color:#b3aee0;">|</span>&nbsp;Ashok Leyland Group</p></div></div>' +
-    '<div class="user-session"><div class="user-avatar">AL</div><div><b style="display:block;font-size:11px;">'+signedInUser.name+'</b><span style="font-size:10px;color:var(--muted);">'+signedInUser.role+'</span></div><button class="btn btn-logout" id="logoutBtn">Sign out</button></div></div>';
+    '<div class="user-session"><button class="btn" id="resetBtn">'+icon('refresh')+' Reset all</button><div class="user-avatar">AL</div><div><b style="display:block;font-size:11px;">'+signedInUser.name+'</b><span style="font-size:10px;color:var(--muted);">'+signedInUser.role+'</span></div><button class="btn btn-logout" id="logoutBtn">Sign out</button></div></div>';
 }
 
 function renderKpis(){
@@ -1054,7 +1054,8 @@ function renderFootnote(){
 function bindEvents(){
   var logoutBtn = document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.onclick = signOut;
-  document.getElementById('resetBtn').onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
+  var resetBtn = document.getElementById('resetBtn');
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ logEvent('Cloud analytics snapshot refreshed - fleet, route demand, defects and driver capacity analyzed'); render(); };
   var costPerChargeIn = document.getElementById('costPerChargeIn');
