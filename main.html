@@ -122,6 +122,14 @@
   .cloud-metric-note{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.35;}.cloud-bar{height:6px;background:#e4edf5;border-radius:5px;overflow:hidden;margin-top:7px;}.cloud-bar-fill{height:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);border-radius:5px;}
   .cloud-routes{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:12px;}.cloud-list{background:#fff;border:1px solid #d5e1ec;border-radius:8px;padding:11px 12px;}.cloud-list-title{font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px;}.cloud-route-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border-soft);padding:7px 0;font-size:11px;}.cloud-route-row:first-of-type{border-top:0;}.cloud-depots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}.cloud-depot{border:1px solid #d5e1ec;border-radius:7px;background:#fff;padding:8px;font-size:10px;}.cloud-depot.live{border-color:var(--green-bd);background:var(--green-dim);}.cloud-depot b{display:block;font-size:10.5px;color:#0f172a;margin-bottom:3px;}
   @media(max-width:700px){.cloud-routes{grid-template-columns:1fr;}.cloud-depots{grid-template-columns:repeat(2,1fr);}}
+  .login-shell{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 12% 12%,#eef2ff 0,#f8fafc 38%,#e8f4f2 100%);}
+  .login-layout{width:min(920px,100%);display:grid;grid-template-columns:1.05fr .95fr;border:1px solid #d5deea;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(15,23,42,.14);}
+  .login-story{padding:42px;background:linear-gradient(145deg,#092c72,#153f9b 58%,#148b83);color:#fff;position:relative;overflow:hidden;}
+  .login-story:after{content:'';position:absolute;width:240px;height:240px;border:1px solid rgba(255,255,255,.2);border-radius:50%;right:-85px;bottom:-95px;box-shadow:0 0 0 28px rgba(255,255,255,.05),0 0 0 56px rgba(255,255,255,.04);}
+  .login-mark{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;margin-bottom:28px;}.login-mark .icon{width:25px;height:25px;}
+  .login-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#bfe8e3;font-weight:700;}.login-story h2{font-size:31px;line-height:1.08;margin:10px 0 14px;max-width:350px;}.login-story p{font-size:13px;line-height:1.6;color:#dbeafe;max-width:370px;margin:0;}.login-signals{display:flex;gap:8px;flex-wrap:wrap;margin-top:32px;}.login-signal{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);border-radius:7px;padding:8px 10px;font-size:11px;color:#e0f2fe;}
+  .login-card{padding:42px 38px;display:flex;flex-direction:column;justify-content:center;}.login-card h1{font-size:24px;margin:0 0 7px;}.login-card .login-sub{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0 0 25px;}.login-label{display:block;font-size:11px;color:#475569;font-weight:700;margin:14px 0 6px;}.login-input{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:11px 12px;background:#fff;color:var(--text);font:13px inherit;outline:none;}.login-input:focus{border-color:#4263eb;box-shadow:0 0 0 3px rgba(66,99,235,.12);}.login-submit{width:100%;justify-content:center;margin-top:20px;padding:12px 16px;}.login-error{min-height:18px;color:var(--red);font-size:11.5px;margin-top:10px;}.login-meta{border-top:1px solid var(--border-soft);padding-top:15px;margin-top:22px;color:var(--muted);font-size:10.5px;line-height:1.5;}.user-session{display:flex;align-items:center;gap:8px;}.user-avatar{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);font-size:11px;font-weight:800;}.btn-logout{padding:5px 9px;font-size:11px;}
+  @media(max-width:700px){.login-layout{grid-template-columns:1fr;}.login-story{padding:28px;}.login-story h2{font-size:26px;}.login-signals{margin-top:22px;}.login-card{padding:30px 25px;}}
   .checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:5px;}
   .checklist-item{display:flex;align-items:center;gap:5px;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text);cursor:pointer;text-align:left;font-family:inherit;width:100%;}
   .checklist-item:hover{background:#eef1f5;}
@@ -266,6 +274,9 @@ function makeFleet(){
   });
 }
 var fleet = makeFleet();
+var AUTH_USERS = [{id:'ashok.admin', password:'Ashok@2026', name:'Ashok Leyland Operations', role:'Depot Operations'}];
+var SESSION_KEY = 'ashok-leyland-session';
+var signedInUser = null;
 var EXTERIOR_ITEMS = ['Front LH','Front RH','Windshield Front','Head Lamp','LH Side Door & Lock','Window Glass LH','Indicator LH','Passenger Door Front','Passenger Door Rear','Rear LH','Rear RH','Rear Door','Windshield Rear','Tail Lamp','RH Side Door & Lock','Window Glass RH','Indicator RH'];
 var INTERIOR_ITEMS = ['Floor','Driver Cabin','Front Foot Board','Rear Foot Board','Window Glass','Body','A/C Duct','Front Windshield','Rear Windshield','Dashboard','LED Destination Board','Bus Roof','Louver Vent','Emergency Window','Seat Back Side Wall','Metal Handle & Hand Holder','Glass Bottom Area'];
 var checklistState = {};
@@ -554,8 +565,41 @@ function renderActionCenter(){
   return '<div class="section"><div class="section-label">'+icon('clipboard')+'Recommended actions &amp; risk queue <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; generated from current fleet and schedule state</span></div><div class="action-grid">'+action(lowBuses.length?'critical':'normal','Charging queue',chargeText)+action(blocked.length?'warning':'normal','Pre-departure blockers',blockedText)+action(serviceDue.length?'warning':'normal','Predictive service queue',serviceText)+action(gaps.length?'critical':'normal','Coverage risk',coverageText)+'</div></div>';
 }
 
+function restoreSession(){
+  try{
+    var saved = JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
+    signedInUser = saved && saved.id ? AUTH_USERS.filter(function(user){return user.id===saved.id;})[0] || null : null;
+  }catch(error){ signedInUser = null; }
+}
+function renderLogin(errorText){
+  return '<div class="login-shell"><div class="login-layout">'+
+    '<section class="login-story"><div class="login-mark">'+icon('bus')+'</div><div class="login-eyebrow">Ashok Leyland | Fleet command</div><h2>Make every departure count.</h2><p>Securely access the Chandapura Depot operations cockpit for intelligent allocation, battery readiness, driver matching, and defect response.</p><div class="login-signals"><span class="login-signal">Cloud AI insights</span><span class="login-signal">24-bus fleet</span><span class="login-signal">Live-ready telemetry</span></div></section>'+
+    '<section class="login-card"><h1>Welcome back</h1><p class="login-sub">Sign in to continue to the Smart Bus Scheduling System.</p><form id="loginForm"><label class="login-label" for="loginId">User ID</label><input class="login-input" id="loginId" autocomplete="username" placeholder="Enter your user ID" required><label class="login-label" for="loginPassword">Password</label><input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><div class="login-error">'+(errorText||'')+'</div><button class="btn-primary login-submit" type="submit">'+icon('check')+' Sign in to operations</button></form><div class="login-meta">Authorized workspace for Ashok Leyland depot operations.<br>Prototype access is stored only in this browser session.</div></section>'+
+  '</div></div>';
+}
+function bindLogin(){
+  var form = document.getElementById('loginForm');
+  if(!form) return;
+  form.onsubmit = function(event){
+    event.preventDefault();
+    var id = document.getElementById('loginId').value.trim();
+    var password = document.getElementById('loginPassword').value;
+    var user = AUTH_USERS.filter(function(candidate){return candidate.id===id && candidate.password===password;})[0];
+    if(!user){ document.getElementById('loginPassword').value=''; renderLogin('User ID or password is incorrect.'); bindLogin(); return; }
+    signedInUser = user;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({id:user.id}));
+    render();
+  };
+}
+function signOut(){
+  sessionStorage.removeItem(SESSION_KEY);
+  signedInUser = null;
+  render();
+}
+
 function render(){
   var app = document.getElementById('app');
+  if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
   app.innerHTML = renderHeader() + renderCloudAnalytics() + renderOpsBrief() + renderActionCenter() + renderKpis() + renderLiveSection() + renderSlotsSection() + renderShedChecklist() + renderDefectDashboard() + renderTablesSection() + renderBestBusFinder() + renderDepotAvailabilityTable() + renderPlanningSection() + renderChartAndRun() + renderResult() + renderTripMonitor();
   bindEvents();
 }
@@ -565,7 +609,7 @@ function renderHeader(){
     '<div><h1>Smart Bus Scheduling - Chandapura Depot</h1>' +
     '<p class="sub">Battery, oil &amp; engine sensors, driver grade, route complexity, and defect capture - matched per your Schedule Allocation &amp; Defect Management Guidelines<br>' +
     '<span style="color:var(--accent-2);font-weight:600;">Fleet: SWITCH EiV12</span>&nbsp;<span style="color:#b3aee0;">|</span>&nbsp;Ashok Leyland Group</p></div></div>' +
-    '<button class="btn" id="resetBtn">'+icon('refresh')+' Reset all</button></div>';
+    '<div class="user-session"><div class="user-avatar">AL</div><div><b style="display:block;font-size:11px;">'+signedInUser.name+'</b><span style="font-size:10px;color:var(--muted);">'+signedInUser.role+'</span></div><button class="btn btn-logout" id="logoutBtn">Sign out</button></div></div>';
 }
 
 function renderKpis(){
@@ -1002,6 +1046,8 @@ function renderFootnote(){
 }
 
 function bindEvents(){
+  var logoutBtn = document.getElementById('logoutBtn');
+  if(logoutBtn) logoutBtn.onclick = signOut;
   document.getElementById('resetBtn').onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ logEvent('Cloud analytics snapshot refreshed - fleet, route demand, defects and driver capacity analyzed'); render(); };
@@ -1129,6 +1175,7 @@ function bindEvents(){
 function updateBus(id, field, value){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = value; render(); }
 function toggleBus(id, field){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = !b[field]; render(); }
 
+restoreSession();
 render();
 </script>
 </body>
