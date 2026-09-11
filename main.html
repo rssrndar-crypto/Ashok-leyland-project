@@ -175,6 +175,15 @@
   .role-card b{display:block;font-size:11px;color:#15304f;margin-bottom:4px;}
   .role-card span{font-size:10.5px;color:var(--muted);line-height:1.35;}
   .page-note{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+  .setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .setup-field{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);}
+  .setup-field input,.setup-field select{font-family:inherit;font-size:12px;padding:8px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);}
+  .setup-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .setup-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;font-size:11px;color:#334155;}
+  .setup-chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0;font-weight:700;}
+  .charge-state{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;}
+  .search-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+  .search-row input{flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:8px 9px;font:12px inherit;}
   @media(max-width:760px){.cockpit-hero,.cockpit-grid{grid-template-columns:1fr;}.role-grid{grid-template-columns:repeat(2,1fr);}.cockpit-title{font-size:22px;}}
 </style>
 </head>
@@ -426,9 +435,16 @@ var daySummary = null;
 var cloudAnalysisAt = null;
 var cockpitPage = 'dashboard';
 var workspaceTab = 'overview';
+var depotNo = 'DEP-CHP-01';
+var depotManager = 'Depot Manager';
+var cityManager = 'City Manager';
+var verificationState = {depot:false, city:false};
+var customDefectCategories = ['Safety','Cleaning','Electrical','Battery','Mechanical'];
+var busSearch = '';
 var washBusId = null;
 var washStartedAt = null;
 var washScheduledAt = null;
+var chargeCompletedAt = null;
 var vehicleLookupMessage = '';
 
 var OFFLINE_MODE = true;
@@ -680,7 +696,7 @@ function render(){
 }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'}];
+  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
@@ -688,7 +704,18 @@ function renderWorkspaceContent(){
   if(workspaceTab==='schedule') return '<p class="tab-context">Build the next departure plan from the selected time window. Allocation checks battery, effective range, wash completion, shed clearance, route category and driver availability.</p>'+renderSlotsSection()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderChartAndRun()+renderResult()+renderPlanningSection();
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderShedChecklist()+renderTablesSection();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderLiveSection()+renderTripMonitor();
+  if(workspaceTab==='setup') return renderDepotSetup();
   return renderOpsBrief()+renderActionCenter()+renderKpis();
+}
+
+function renderDepotSetup(){
+  var categories = customDefectCategories.map(function(category,index){ return '<span class="setup-chip">'+category+' <button type="button" class="remove-category" data-index="'+index+'" aria-label="Remove '+category+'">x</button></span>'; }).join('');
+  return '<p class="tab-context">Configure this depot and complete the verification chain before schedules are released. Data is limited to the selected depot and city.</p>'+
+    '<div class="setup-grid"><div class="panel"><div class="panel-head"><span>Depot identity</span><span class="pill pill-simple">Local data only</span></div><div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
+      '<label class="setup-field">Depot number<input id="depotNoInput" value="'+depotNo+'"></label><label class="setup-field">Depot name<input id="depotNameInput" value="'+DEPOT_NAME+'"></label><label class="setup-field">Depot manager<input id="depotManagerInput" value="'+depotManager+'"></label><label class="setup-field">City manager<input id="cityManagerInput" value="'+cityManager+'"></label></div></div>'+
+    '<div class="panel"><div class="panel-head"><span>Verification</span><span class="pill '+(verificationState.depot&&verificationState.city?'pill-simple':'pill-moderate')+'">'+(verificationState.depot&&verificationState.city?'Complete':'Pending')+'</span></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:12px;"><label><input type="checkbox" id="depotVerifyCheck" '+(verificationState.depot?'checked':'')+'> Depot manager verification complete</label><label><input type="checkbox" id="cityVerifyCheck" '+(verificationState.city?'checked':'')+'> City manager verification complete</label><div style="font-size:11px;color:var(--muted);">Schedule release requires both manager checks.</div></div></div></div>'+
+    '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Actors and access</span></div><div style="padding:14px 16px;" class="role-grid"><div class="role-card"><b>Inspector</b><span>Scans bus and records clean-service readiness.</span></div><div class="role-card"><b>Internal supervisor</b><span>Receives defect information only.</span></div><div class="role-card"><b>External supervisor</b><span>Sees service and shed-out status.</span></div><div class="role-card"><b>Depot manager</b><span>Verifies depot data and manages categories.</span></div></div></div>'+
+    '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Depot manager: complaint categories</span><span style="font-size:11px;color:var(--muted);">categories may vary by depot</span></div><div style="padding:14px 16px;"><div class="workflow-row"><input class="workflow-input" id="categoryInput" placeholder="Add category, e.g. HVAC"><button class="btn-secondary" id="addCategoryBtn">+ Add category</button></div><div class="setup-list">'+categories+'</div><div style="font-size:11px;color:var(--muted);margin-top:9px;">Priority: safety or repeated defect per vehicle = High; recurring depot pattern = Medium; routine clean-service item = Normal.</div></div></div>';
 }
 
 function renderCockpit(){
@@ -699,7 +726,9 @@ function renderCockpit(){
   var match = bus && bestBusRouteId ? matchScore(bus, routes.filter(function(r){return r.id===bestBusRouteId;})[0]) : Math.round((fleet.filter(isAvailableNow).length/fleet.length)*100);
   var lookup = vehicleLookupMessage ? '<div class="workflow-status">'+vehicleLookupMessage+'</div>' : '';
   var scheduleText = washScheduledAt ? 'Scheduled for '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'No wash slot scheduled';
-  var pageBody = '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions"><button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button><button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div></div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>';
+  var chargeText = bus ? (chargeCompletedAt ? 'Charge complete at '+new Date(chargeCompletedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Charge completion input required before clean service') : 'Select a bus to record charge completion';
+  var chargeButton = bus ? '<button class="btn" id="chargeCompleteBtn" style="margin-top:7px;padding:5px 9px;font-size:11px;">'+icon('battery')+' '+(chargeCompletedAt?'Charge recorded':'Mark charge complete')+'</button>' : '';
+  var pageBody = '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions"><button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button><button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div><div class="charge-state">'+icon('battery')+chargeText+'</div>'+chargeButton+'</div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>';
   return '<div class="cockpit"><div class="cockpit-nav"><span style="font-size:12px;font-weight:700;color:#15304f;">1. Dispatch cockpit</span><span class="pill pill-simple">Local depot data only</span></div><div class="cockpit-body">'+pageBody+'</div></div>';
 }
 
@@ -956,24 +985,31 @@ function renderBestBusFinder(){
     return b.bus.soc-a.bus.soc;
   });
   var badList = ranked.filter(function(r){return !r.fits;});
+  var visibleOkList = busSearch ? okList.filter(function(r){return r.bus.id.toLowerCase().indexOf(busSearch.toLowerCase())!==-1 || r.bus.plate.toLowerCase().indexOf(busSearch.toLowerCase())!==-1;}) : okList;
+  var visibleBadList = busSearch ? badList.filter(function(r){return r.bus.id.toLowerCase().indexOf(busSearch.toLowerCase())!==-1 || r.bus.plate.toLowerCase().indexOf(busSearch.toLowerCase())!==-1;}) : badList;
 
   var options = routes.map(function(r){ return '<option value="'+r.id+'"'+(r.id===bestBusRouteId?' selected':'')+'>'+r.code+' ('+r.category+')</option>'; }).join('');
-  var rows = okList.map(function(r, idx){
+  var rows = visibleOkList.map(function(r, idx){
     var badge = idx===0 ? '<span class="pill pill-simple">Perfect match</span>' : '<span class="pill pill-standard">Also works</span>';
     var margin = Math.round((effectiveRange(r.bus) - route.reqRange)*10)/10;
     return '<div class="assign-row"><div style="display:flex;gap:8px;align-items:center;">'+badge+
       '<b class="mono">'+r.bus.id+'</b><span class="mono" style="color:var(--muted);font-size:10.5px;">'+r.bus.plate+'</span><span style="color:var(--muted);font-size:11px;">'+r.bus.soc+'% battery, '+busRange(r.bus)+'km range &middot; +'+margin+'km over this route\'s '+route.reqRange+'km</span></div>'+
       '<span class="match-score">Match '+r.score+'/100</span><span class="pill '+pillClass(r.cat)+'">'+r.cat+'</span></div>';
   }).join('');
-  var badRows = badList.map(function(r){
+  var badRows = visibleBadList.map(function(r){
     return '<div class="gap-item" style="padding-left:0;display:flex;gap:5px;align-items:center;">'+icon('x')+r.bus.id+' ('+r.bus.plate+') - '+r.why+'</div>';
   }).join('');
 
+  var suggestions = busSearch && !visibleOkList.length ? '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'Bus is not ready for this schedule</div><div class="gap-item">Try another bus from the depot, clear its shed-out items, or complete charging before allocation.</div></div>' : '';
+  var mapBus = visibleOkList[0] || visibleBadList[0];
+  var mapState = mapBus ? (mapBus.fits ? '<span style="color:var(--green);">Ready for allocation</span>' : '<span style="color:var(--amber);">Not ready: '+mapBus.why+'</span>') : '<span style="color:var(--muted);">Search a bus to check readiness</span>';
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
     '<span>Best bus for this route</span><select id="bbRouteSel">'+options+'</select></div>' +
+    '<div class="search-row"><input id="busSearchInput" value="'+busSearch+'" placeholder="Search bus number or scan ID"><span class="pill pill-simple">'+(visibleOkList.length)+' ready match'+(visibleOkList.length===1?'':'es')+'</span></div>' +
+    '<div class="mapbox" style="margin-bottom:10px;min-height:92px;"><span class="map-point">'+icon('bus')+' '+(mapBus ? mapBus.bus.id+' &middot; '+mapBus.bus.plate : 'No bus selected')+'</span><span class="map-point">'+icon('grid')+' '+route.code+'</span><div style="position:relative;z-index:1;font-size:11px;color:#31536b;margin:16px 8px 0;">'+mapState+'</div></div>' +
     '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+route.code+' is a <span class="pill '+pillClass(route.category)+'">'+route.category+'</span> route - needs Category '+allowed.join('/')+' during '+slot.label+' ('+slot.cat+')</div>' +
-    (rows || '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus for this route right now</div></div>') +
-    (badRows ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Not eligible ('+badList.length+')</div>'+badRows+'</div>' : '') +
+    suggestions + (rows || (!busSearch ? '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus for this route right now</div></div>' : '')) +
+    (badRows ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Not ready or not matched ('+visibleBadList.length+')</div>'+badRows+'</div>' : '') +
   '</div>';
 }
 
@@ -1163,14 +1199,23 @@ function bindEvents(){
     vehicleLookupMessage = washBusId+' entered wash bay. Schedule unlocks after the 20-minute wash window.';
     logEvent(washBusId+' wash started - 20 minute service window'); render();
   };
+  var chargeCompleteBtn = document.getElementById('chargeCompleteBtn');
+  if(chargeCompleteBtn) chargeCompleteBtn.onclick = function(){
+    var bus = fleet.filter(function(b){return b.id===washBusId;})[0];
+    if(!bus) return;
+    bus.soc = 100; bus.socHistory.push(100); chargeCompletedAt = Date.now();
+    vehicleLookupMessage = bus.id+' charge completed. Bus is ready for clean service and shed-out inspection.';
+    logEvent(bus.id+' charge completed - ready for clean service'); render();
+  };
   var oneClickSchedule = document.getElementById('oneClickSchedule');
   if(oneClickSchedule) oneClickSchedule.onclick = function(){
     if(washStartedAt && Date.now()-washStartedAt<20*60000){ vehicleLookupMessage = 'Wash is still in progress. Schedule is held until '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); render(); return; }
+    if(!verificationState.depot || !verificationState.city){ vehicleLookupMessage = 'Schedule is held until depot manager and city manager verification is complete in Depot setup.'; render(); return; }
     result = computeAllocation(); startTrips(result.assignments); washScheduledAt = null;
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; vehicleLookupMessage=''; seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ cloudAnalysisAt = new Date(); logEvent('Cloud AI snapshot refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
   var aiDispatchBtn = document.getElementById('aiDispatchBtn');
@@ -1205,6 +1250,23 @@ function bindEvents(){
   }
   var bbRouteSel = document.getElementById('bbRouteSel');
   if(bbRouteSel) bbRouteSel.onchange = function(){ bestBusRouteId = this.value; render(); };
+  var busSearchInput = document.getElementById('busSearchInput');
+  if(busSearchInput) busSearchInput.onchange = function(){ busSearch = this.value.trim(); render(); };
+  var depotNoInput = document.getElementById('depotNoInput');
+  if(depotNoInput) depotNoInput.onchange = function(){ depotNo = this.value.trim() || depotNo; render(); };
+  var depotNameInput = document.getElementById('depotNameInput');
+  if(depotNameInput) depotNameInput.onchange = function(){ DEPOT_NAME = this.value.trim() || DEPOT_NAME; render(); };
+  var depotManagerInput = document.getElementById('depotManagerInput');
+  if(depotManagerInput) depotManagerInput.onchange = function(){ depotManager = this.value.trim() || depotManager; render(); };
+  var cityManagerInput = document.getElementById('cityManagerInput');
+  if(cityManagerInput) cityManagerInput.onchange = function(){ cityManager = this.value.trim() || cityManager; render(); };
+  var depotVerifyCheck = document.getElementById('depotVerifyCheck');
+  if(depotVerifyCheck) depotVerifyCheck.onchange = function(){ verificationState.depot = this.checked; render(); };
+  var cityVerifyCheck = document.getElementById('cityVerifyCheck');
+  if(cityVerifyCheck) cityVerifyCheck.onchange = function(){ verificationState.city = this.checked; render(); };
+  var addCategoryBtn = document.getElementById('addCategoryBtn');
+  if(addCategoryBtn) addCategoryBtn.onclick = function(){ var input = document.getElementById('categoryInput'); var value = input.value.trim(); if(value && customDefectCategories.indexOf(value)===-1) customDefectCategories.push(value); render(); };
+  document.querySelectorAll('.remove-category').forEach(function(el){ el.onclick = function(){ customDefectCategories.splice(Number(el.getAttribute('data-index')),1); render(); }; });
   document.querySelectorAll('.checklist-item').forEach(function(el){
     el.onclick = function(){
       var prefix = el.getAttribute('data-prefix'); var item = el.getAttribute('data-item');
@@ -1258,7 +1320,7 @@ function bindEvents(){
   if(liveBtn) liveBtn.onclick = toggleLive;
   document.querySelectorAll('.slot').forEach(function(el){ el.onclick = function(){ slotId = el.getAttribute('data-slot'); result = null; render(); }; });
   var runBtn = document.getElementById('runBtn');
-  if(runBtn) runBtn.onclick = function(){ result = computeAllocation(); startTrips(result.assignments); render(); };
+  if(runBtn) runBtn.onclick = function(){ if(!verificationState.depot || !verificationState.city){ alert('Complete depot manager and city manager verification in Depot setup before scheduling.'); return; } result = computeAllocation(); startTrips(result.assignments); render(); };
   var dayBtn = document.getElementById('dayBtn');
   if(dayBtn) dayBtn.onclick = runFullDay;
   document.querySelectorAll('.soc-in').forEach(function(el){ el.onchange = function(){ updateBus(el.getAttribute('data-id'),'soc',Number(el.value)); }; });
