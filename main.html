@@ -1171,7 +1171,7 @@ function bindEvents(){
   if(oneClickSchedule) oneClickSchedule.onclick = function(){
     if(washStartedAt && Date.now()-washStartedAt<20*60000){ vehicleLookupMessage = 'Wash is still in progress. Schedule is held until '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); render(); return; }
     result = computeAllocation(); startTrips(result.assignments); washScheduledAt = null;
-    logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); render();
+    logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var openDefectsBtn = document.getElementById('openDefectsBtn');
   if(openDefectsBtn) openDefectsBtn.onclick = function(){ workspaceTab = 'defects'; cockpitPage = 'dashboard'; render(); };
