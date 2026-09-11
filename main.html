@@ -332,7 +332,14 @@ function makeFleet(){
   });
 }
 var fleet = makeFleet();
-var AUTH_USERS = [{id:'ashok.admin', password:'Ashok@2026', name:'Ashok Leyland Operations', role:'Depot Operations'}];
+var AUTH_USERS = [
+  {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['overview','schedule','fleet','tracking','setup']},
+  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['overview','fleet','tracking']},
+  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['overview','schedule','fleet','tracking']},
+  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','tracking']},
+  {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup']},
+  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','tracking','setup']}
+];
 var SESSION_KEY = 'ashok-leyland-session';
 var signedInUser = null;
 var EXTERIOR_ITEMS = ['Front LH','Front RH','Windshield Front','Head Lamp','LH Side Door & Lock','Window Glass LH','Indicator LH','Passenger Door Front','Passenger Door Rear','Rear LH','Rear RH','Rear Door','Windshield Rear','Tail Lamp','RH Side Door & Lock','Window Glass RH','Indicator RH'];
@@ -700,13 +707,19 @@ function signOut(){
 function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
+  if(!canAccessTab(workspaceTab)) workspaceTab = 'overview';
   app.innerHTML = renderHeader() + renderWorkspaceNav() + renderCockpit() + renderWorkspaceContent();
   bindEvents();
 }
 
+function canAccessTab(tab){ return !!signedInUser && signedInUser.tabs.indexOf(tab)!==-1; }
+function canSchedule(){ return !!signedInUser && ['Depot Operations','Internal Supervisor','Depot Manager','City Manager'].indexOf(signedInUser.role)!==-1; }
+function canEditDepot(){ return !!signedInUser && ['Depot Operations','Depot Manager'].indexOf(signedInUser.role)!==-1; }
+function canVerifyCity(){ return !!signedInUser && ['Depot Operations','City Manager'].indexOf(signedInUser.role)!==-1; }
+
 function renderWorkspaceNav(){
   var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'}];
-  return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
+  return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.filter(function(tab){return canAccessTab(tab.id);}).map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
 function renderWorkspaceContent(){
@@ -751,13 +764,15 @@ function renderTrackingInsights(){
 }
 
 function renderDepotSetup(){
+  var depotEdit = canEditDepot() ? '' : ' disabled';
+  var cityEdit = canVerifyCity() ? '' : ' disabled';
   var categories = customDefectCategories.map(function(category,index){ return '<span class="setup-chip">'+category+' <button type="button" class="remove-category" data-index="'+index+'" aria-label="Remove '+category+'">x</button></span>'; }).join('');
   return '<p class="tab-context">Configure this depot and complete the verification chain before schedules are released. Data is limited to the selected depot and city.</p>'+
     '<div class="setup-grid"><div class="panel"><div class="panel-head"><span>Depot identity</span><span class="pill pill-simple">Local data only</span></div><div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
-      '<label class="setup-field">Depot number<input id="depotNoInput" value="'+depotNo+'"></label><label class="setup-field">Depot name<input id="depotNameInput" value="'+DEPOT_NAME+'"></label><label class="setup-field">Depot manager<input id="depotManagerInput" value="'+depotManager+'"></label><label class="setup-field">City manager<input id="cityManagerInput" value="'+cityManager+'"></label></div></div>'+
-    '<div class="panel"><div class="panel-head"><span>Verification</span><span class="pill '+(verificationState.depot&&verificationState.city?'pill-simple':'pill-moderate')+'">'+(verificationState.depot&&verificationState.city?'Complete':'Pending')+'</span></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:12px;"><label><input type="checkbox" id="depotVerifyCheck" '+(verificationState.depot?'checked':'')+'> Depot manager verification complete</label><label><input type="checkbox" id="cityVerifyCheck" '+(verificationState.city?'checked':'')+'> City manager verification complete</label><div style="font-size:11px;color:var(--muted);">Schedule release requires both manager checks.</div></div></div></div>'+
+      '<label class="setup-field">Depot number<input id="depotNoInput" value="'+depotNo+'"'+depotEdit+'></label><label class="setup-field">Depot name<input id="depotNameInput" value="'+DEPOT_NAME+'"'+depotEdit+'></label><label class="setup-field">Depot manager<input id="depotManagerInput" value="'+depotManager+'"'+depotEdit+'></label><label class="setup-field">City manager<input id="cityManagerInput" value="'+cityManager+'"'+cityEdit+'></label></div></div>'+
+    '<div class="panel"><div class="panel-head"><span>Verification</span><span class="pill '+(verificationState.depot&&verificationState.city?'pill-simple':'pill-moderate')+'">'+(verificationState.depot&&verificationState.city?'Complete':'Pending')+'</span></div><div style="padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:12px;"><label><input type="checkbox" id="depotVerifyCheck" '+(verificationState.depot?'checked':'')+depotEdit+'> Depot manager verification complete</label><label><input type="checkbox" id="cityVerifyCheck" '+(verificationState.city?'checked':'')+cityEdit+'> City manager verification complete</label><div style="font-size:11px;color:var(--muted);">Schedule release requires both manager checks.</div></div></div></div>'+
     '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Actors and access</span></div><div style="padding:14px 16px;" class="role-grid"><div class="role-card"><b>Inspector</b><span>Scans bus and records clean-service readiness.</span></div><div class="role-card"><b>Internal supervisor</b><span>Receives defect information only.</span></div><div class="role-card"><b>External supervisor</b><span>Sees service and shed-out status.</span></div><div class="role-card"><b>Depot manager</b><span>Verifies depot data and manages categories.</span></div></div></div>'+
-    '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Depot manager: complaint categories</span><span style="font-size:11px;color:var(--muted);">categories may vary by depot</span></div><div style="padding:14px 16px;"><div class="workflow-row"><input class="workflow-input" id="categoryInput" placeholder="Add category, e.g. HVAC"><button class="btn-secondary" id="addCategoryBtn">+ Add category</button></div><div class="setup-list">'+categories+'</div><div style="font-size:11px;color:var(--muted);margin-top:9px;">Priority: safety or repeated defect per vehicle = High; recurring depot pattern = Medium; routine clean-service item = Normal.</div></div></div>';
+    '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Depot manager: complaint categories</span><span style="font-size:11px;color:var(--muted);">categories may vary by depot</span></div><div style="padding:14px 16px;"><div class="workflow-row"><input class="workflow-input" id="categoryInput" placeholder="Add category, e.g. HVAC"'+depotEdit+'><button class="btn-secondary" id="addCategoryBtn"'+depotEdit+'>+ Add category</button></div><div class="setup-list">'+categories+'</div><div style="font-size:11px;color:var(--muted);margin-top:9px;">Priority: safety or repeated defect per vehicle = High; recurring depot pattern = Medium; routine clean-service item = Normal.</div></div></div>';
 }
 
 function renderCockpit(){
@@ -770,7 +785,8 @@ function renderCockpit(){
   var scheduleText = washScheduledAt ? 'Scheduled for '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'No wash slot scheduled';
   var chargeText = bus ? (chargeCompletedAt ? 'Charge complete at '+new Date(chargeCompletedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Charge completion input required before clean service') : 'Select a bus to record charge completion';
   var chargeButton = bus ? '<button class="btn" id="chargeCompleteBtn" style="margin-top:7px;padding:5px 9px;font-size:11px;">'+icon('battery')+' '+(chargeCompletedAt?'Charge recorded':'Mark charge complete')+'</button>' : '';
-  var pageBody = '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions"><button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button><button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div><div class="charge-state">'+icon('battery')+chargeText+'</div>'+chargeButton+'</div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>';
+  var scheduleAction = canSchedule() ? '<button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button>' : '<span class="pill pill-standard">Scheduling access: '+(signedInUser ? signedInUser.role : 'restricted')+'</span>';
+  var pageBody = '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions">'+scheduleAction+'<button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div><div class="charge-state">'+icon('battery')+chargeText+'</div>'+chargeButton+'</div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>';
   return '<div class="cockpit"><div class="cockpit-nav"><span style="font-size:12px;font-weight:700;color:#15304f;">1. Dispatch cockpit</span><span class="pill pill-simple">Local depot data only</span></div><div class="cockpit-body">'+pageBody+'</div></div>';
 }
 
@@ -1241,7 +1257,7 @@ function renderFootnote(){
 function bindEvents(){
   var logoutBtn = document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.onclick = signOut;
-  document.querySelectorAll('.workspace-tab').forEach(function(el){ el.onclick = function(){ workspaceTab = el.getAttribute('data-workspace-tab'); cockpitPage = workspaceTab==='governance' ? 'governance' : 'dashboard'; render(); }; });
+  document.querySelectorAll('.workspace-tab').forEach(function(el){ el.onclick = function(){ var nextTab = el.getAttribute('data-workspace-tab'); if(canAccessTab(nextTab)){ workspaceTab = nextTab; cockpitPage = 'dashboard'; render(); } }; });
   var lookupVehicle = document.getElementById('lookupVehicle');
   if(lookupVehicle) lookupVehicle.onclick = function(){
     var query = document.getElementById('vehicleLookup').value.trim().toUpperCase();
@@ -1268,6 +1284,7 @@ function bindEvents(){
   };
   var oneClickSchedule = document.getElementById('oneClickSchedule');
   if(oneClickSchedule) oneClickSchedule.onclick = function(){
+    if(!canSchedule()) return;
     if(washStartedAt && Date.now()-washStartedAt<20*60000){ vehicleLookupMessage = 'Wash is still in progress. Schedule is held until '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); render(); return; }
     if(!verificationState.depot || !verificationState.city){ vehicleLookupMessage = 'Schedule is held until depot manager and city manager verification is complete in Depot setup.'; render(); return; }
     result = computeAllocation(); startTrips(result.assignments); washScheduledAt = null;
@@ -1312,20 +1329,20 @@ function bindEvents(){
   var busSearchInput = document.getElementById('busSearchInput');
   if(busSearchInput) busSearchInput.onchange = function(){ busSearch = this.value.trim(); render(); };
   var depotNoInput = document.getElementById('depotNoInput');
-  if(depotNoInput) depotNoInput.onchange = function(){ depotNo = this.value.trim() || depotNo; render(); };
+  if(depotNoInput && canEditDepot()) depotNoInput.onchange = function(){ depotNo = this.value.trim() || depotNo; render(); };
   var depotNameInput = document.getElementById('depotNameInput');
-  if(depotNameInput) depotNameInput.onchange = function(){ DEPOT_NAME = this.value.trim() || DEPOT_NAME; render(); };
+  if(depotNameInput && canEditDepot()) depotNameInput.onchange = function(){ DEPOT_NAME = this.value.trim() || DEPOT_NAME; render(); };
   var depotManagerInput = document.getElementById('depotManagerInput');
-  if(depotManagerInput) depotManagerInput.onchange = function(){ depotManager = this.value.trim() || depotManager; render(); };
+  if(depotManagerInput && canEditDepot()) depotManagerInput.onchange = function(){ depotManager = this.value.trim() || depotManager; render(); };
   var cityManagerInput = document.getElementById('cityManagerInput');
-  if(cityManagerInput) cityManagerInput.onchange = function(){ cityManager = this.value.trim() || cityManager; render(); };
+  if(cityManagerInput && canVerifyCity()) cityManagerInput.onchange = function(){ cityManager = this.value.trim() || cityManager; render(); };
   var depotVerifyCheck = document.getElementById('depotVerifyCheck');
-  if(depotVerifyCheck) depotVerifyCheck.onchange = function(){ verificationState.depot = this.checked; render(); };
+  if(depotVerifyCheck && canEditDepot()) depotVerifyCheck.onchange = function(){ verificationState.depot = this.checked; render(); };
   var cityVerifyCheck = document.getElementById('cityVerifyCheck');
-  if(cityVerifyCheck) cityVerifyCheck.onchange = function(){ verificationState.city = this.checked; render(); };
+  if(cityVerifyCheck && canVerifyCity()) cityVerifyCheck.onchange = function(){ verificationState.city = this.checked; render(); };
   var addCategoryBtn = document.getElementById('addCategoryBtn');
-  if(addCategoryBtn) addCategoryBtn.onclick = function(){ var input = document.getElementById('categoryInput'); var value = input.value.trim(); if(value && customDefectCategories.indexOf(value)===-1) customDefectCategories.push(value); render(); };
-  document.querySelectorAll('.remove-category').forEach(function(el){ el.onclick = function(){ customDefectCategories.splice(Number(el.getAttribute('data-index')),1); render(); }; });
+  if(addCategoryBtn && canEditDepot()) addCategoryBtn.onclick = function(){ var input = document.getElementById('categoryInput'); var value = input.value.trim(); if(value && customDefectCategories.indexOf(value)===-1) customDefectCategories.push(value); render(); };
+  if(canEditDepot()) document.querySelectorAll('.remove-category').forEach(function(el){ el.onclick = function(){ customDefectCategories.splice(Number(el.getAttribute('data-index')),1); render(); }; });
   document.querySelectorAll('.checklist-item').forEach(function(el){
     el.onclick = function(){
       var prefix = el.getAttribute('data-prefix'); var item = el.getAttribute('data-item');
@@ -1381,7 +1398,7 @@ function bindEvents(){
   if(scheduleDateInput) scheduleDateInput.onchange = function(){ scheduleDate = this.value || scheduleDate; result = null; render(); };
   document.querySelectorAll('.slot').forEach(function(el){ el.onclick = function(){ slotId = el.getAttribute('data-slot'); result = null; render(); }; });
   var runBtn = document.getElementById('runBtn');
-  if(runBtn) runBtn.onclick = function(){ if(!verificationState.depot || !verificationState.city){ alert('Complete depot manager and city manager verification in Depot setup before scheduling.'); return; } result = computeAllocation(); startTrips(result.assignments); render(); };
+  if(runBtn) runBtn.onclick = function(){ if(!canSchedule()) return; if(!verificationState.depot || !verificationState.city){ alert('Complete depot manager and city manager verification in Depot setup before scheduling.'); return; } result = computeAllocation(); startTrips(result.assignments); render(); };
   var dayBtn = document.getElementById('dayBtn');
   if(dayBtn) dayBtn.onclick = runFullDay;
   document.querySelectorAll('.soc-in').forEach(function(el){ el.onchange = function(){ updateBus(el.getAttribute('data-id'),'soc',Number(el.value)); }; });
