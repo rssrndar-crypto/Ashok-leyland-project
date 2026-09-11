@@ -1003,12 +1003,29 @@ function renderBestBusFinder(){
   var suggestions = busSearch && !visibleOkList.length ? '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'Bus is not ready for this schedule</div><div class="gap-item">Try another bus from the depot, clear its shed-out items, or complete charging before allocation.</div></div>' : '';
   var mapBus = visibleOkList[0] || visibleBadList[0];
   var mapState = mapBus ? (mapBus.fits ? '<span style="color:var(--green);">Ready for allocation</span>' : '<span style="color:var(--amber);">Not ready: '+mapBus.why+'</span>') : '<span style="color:var(--muted);">Search a bus to check readiness</span>';
+  var detailBus = (busSearch ? fleet.filter(function(b){return b.id.toLowerCase()===busSearch.toLowerCase() || b.plate.toLowerCase()===busSearch.toLowerCase();})[0] : null) || (mapBus ? mapBus.bus : fleet[0]);
+  var detailFit = busFitReason(detailBus, route, allowed);
+  var detailTrip = trips[detailBus.id];
+  var detailWash = washBusId===detailBus.id && washStartedAt ? (Date.now()-washStartedAt>=20*60000 ? 'Complete' : 'In progress') : 'Not started';
+  var detailCharge = detailBus.soc>=98 || (chargeCompletedAt && washBusId===detailBus.id) ? 'Complete' : 'Required';
+  var detailAssigned = result && result.assignments.filter(function(a){return a.busId===detailBus.id;})[0];
+  var detailRows = '<tr><th>Bus number</th><td class="mono">'+detailBus.id+'</td><th>Number plate</th><td class="mono">'+detailBus.plate+'</td></tr>'+
+    '<tr><th>Depot</th><td>'+DEPOT_NAME+' ('+depotNo+')</td><th>Depot status</th><td>'+(detailFit.inDepot?'In depot':'Shed-out / on route')+'</td></tr>'+
+    '<tr><th>Battery SOC</th><td>'+detailBus.soc+'%</td><th>Battery SOH</th><td>'+detailBus.soh+'%</td></tr>'+
+    '<tr><th>Usable range</th><td>'+busRange(detailBus)+' km</td><th>Expected range</th><td>'+expectedRange(detailBus)+' km</td></tr>'+
+    '<tr><th>Range category</th><td><span class="pill '+pillClass(rangeCategory(effectiveRange(detailBus)))+'">'+rangeCategory(effectiveRange(detailBus))+'</span></td><th>Route fit</th><td>'+ (detailFit.fits ? '<span style="color:var(--green);">Ready</span>' : '<span style="color:var(--amber);">'+detailFit.why+'</span>')+'</td></tr>'+
+    '<tr><th>Charge</th><td>'+detailCharge+'</td><th>Wash</th><td>'+detailWash+'</td></tr>'+
+    '<tr><th>Interior check</th><td>'+(detailBus.interiorClean?'Clear':'Pending')+'</td><th>Exterior check</th><td>'+(detailBus.exteriorClean?'Clear':'Pending')+'</td></tr>'+
+    '<tr><th>Oil / engine</th><td>'+(detailBus.oilCheck&&detailBus.engineCheck?'Clear':'Pending')+'</td><th>Maintenance</th><td>'+(detailBus.maintenance?'Hold':'Clear')+'</td></tr>'+
+    '<tr><th>Service distance</th><td>'+detailBus.odoSinceService+' / '+SERVICE_INTERVAL_KM+' km</td><th>Driver</th><td>'+(detailAssigned?detailAssigned.driverId:'Not assigned')+'</td></tr>'+
+    '<tr><th>Live trip</th><td>'+(detailTrip && !detailTrip.done ? detailTrip.routeCode+' &middot; '+detailTrip.progress+'%' : 'Not active')+'</td><th>Match score</th><td><b class="match-score">'+matchScore(detailBus,route)+'/100</b></td></tr>';
+  var detailPanel = '<div class="panel" style="margin-bottom:10px;"><div class="panel-head"><span>Selected bus details</span><span class="pill '+(detailFit.fits?'pill-simple':'pill-moderate')+'">'+(detailFit.fits?'Ready':'Needs attention')+'</span></div><div class="tablewrap"><table><tbody>'+detailRows+'</tbody></table></div></div>';
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
     '<span>Best bus for this route</span><select id="bbRouteSel">'+options+'</select></div>' +
     '<div class="search-row"><input id="busSearchInput" value="'+busSearch+'" placeholder="Search bus number or scan ID"><span class="pill pill-simple">'+(visibleOkList.length)+' ready match'+(visibleOkList.length===1?'':'es')+'</span></div>' +
     '<div class="mapbox" style="margin-bottom:10px;min-height:92px;"><span class="map-point">'+icon('bus')+' '+(mapBus ? mapBus.bus.id+' &middot; '+mapBus.bus.plate : 'No bus selected')+'</span><span class="map-point">'+icon('grid')+' '+route.code+'</span><div style="position:relative;z-index:1;font-size:11px;color:#31536b;margin:16px 8px 0;">'+mapState+'</div></div>' +
     '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+route.code+' is a <span class="pill '+pillClass(route.category)+'">'+route.category+'</span> route - needs Category '+allowed.join('/')+' during '+slot.label+' ('+slot.cat+')</div>' +
-    suggestions + (rows || (!busSearch ? '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus for this route right now</div></div>' : '')) +
+    detailPanel + suggestions + (rows || (!busSearch ? '<div class="gapbox"><div class="gapbox-title">'+icon('warn')+'No eligible bus for this route right now</div></div>' : '')) +
     (badRows ? '<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Not ready or not matched ('+visibleBadList.length+')</div>'+badRows+'</div>' : '') +
   '</div>';
 }
