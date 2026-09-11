@@ -8,33 +8,33 @@
 <title>Smart Bus Scheduling - Chandapura Depot</title>
 <style>
   :root{
-    --bg:#f3f5f8; --panel:#ffffff; --panel-soft:#f7f9fb; --border:#e1e5eb; --border-soft:#edf1f5;
-    --text:#182233; --muted:#66748a; --accent:#0533d5; --accent-2:#9333ea; --accent-dim:#ecebfd;
+    --bg:#eef3f7; --panel:#ffffff; --panel-soft:#f6f9fb; --border:#d8e1e9; --border-soft:#e8eef3;
+    --text:#182233; --muted:#617189; --accent:#0b4ea2; --accent-2:#007d78; --accent-dim:#e8f1fb;
     --green:#059669; --green-dim:#e7f6ef; --green-bd:#a7d9c3;
     --amber:#b45309; --amber-dim:#fef3e2; --amber-bd:#f0d19b;
     --red:#dc2626; --red-dim:#fdecec; --red-bd:#f3b8b8;
     --slate:#6b7690;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:linear-gradient(180deg,#ffffff,var(--bg) 340px);color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
-  .wrap{max-width:1200px;margin:0 auto;padding:30px 20px 60px;}
+  body{margin:0;background:radial-gradient(circle at 85% -10%,#dceff0 0,transparent 32%),linear-gradient(180deg,#fafdff,var(--bg) 420px);color:var(--text);font-family:"DM Sans","Segoe UI",Arial,sans-serif;}
+  .wrap{max-width:1260px;margin:0 auto;padding:28px 24px 64px;}
   .icon{width:16px;height:16px;display:inline-block;vertical-align:-3px;flex-shrink:0;}
-  .header{position:relative;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border);padding-bottom:18px;}
-  .header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2) 60%,transparent);}
+  .header{position:relative;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;border:1px solid var(--border);border-radius:14px;padding:17px 18px;background:rgba(255,255,255,.88);box-shadow:0 8px 26px rgba(27,52,78,.06);}
+  .header::after{content:'';position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2) 60%,transparent);}
   .headline{display:flex;gap:13px;align-items:center;}
-  .badge-icon{width:40px;height:40px;border-radius:10px;background:var(--accent-dim);border:1px solid #c9c6f7;display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;}
+  .badge-icon{width:42px;height:42px;border-radius:11px;background:linear-gradient(145deg,#e7f1ff,#dff4f0);border:1px solid #c4dce3;display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;}
   .badge-icon .icon{width:20px;height:20px;}
-  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-0.01em;color:#0f172a;}
+  h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-0.02em;color:#0f2744;}
   .sub{font-size:12.5px;color:var(--muted);margin:3px 0 0;}
   .btn{background:#ffffff;border:1px solid var(--border);color:var(--slate);border-radius:7px;padding:7px 13px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:background .15s;}
   .btn:hover{background:#f1f4f8;}
   .btn-live{border-color:#bfe3d3;color:var(--green);}
   .btn-stop{border-color:#f3c6c6;color:var(--red);}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;color:#fff;font-weight:700;padding:11px 20px;border-radius:9px;font-size:14px;cursor:pointer;box-shadow:0 6px 16px -4px rgba(5,51,213,.35);}
+  .btn-primary{background:linear-gradient(135deg,#0b4ea2,#087d78);border:none;color:#fff;font-weight:700;padding:11px 20px;border-radius:8px;font-size:14px;cursor:pointer;box-shadow:0 7px 16px -5px rgba(11,78,162,.42);}
   .btn-primary:hover{opacity:.92;}
   .btn-secondary{background:var(--accent-dim);border:1px solid #c9c6f7;color:var(--accent);border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
   .btn-secondary:hover{background:#e1def9;}
-  .section{padding-top:22px;margin-top:22px;border-top:1px solid var(--border);}
+  .section{padding-top:24px;margin-top:24px;border-top:1px solid var(--border);}
   .section-label{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:#0f172a;}
   .kpis{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:22px;background:var(--panel-soft);}
   .kpi{flex:1 1 130px;padding:13px 15px;border-left:1px solid var(--border);}
@@ -49,8 +49,8 @@
   .slot .t2{font-size:11px;opacity:.75;}
   .grid2{display:grid;grid-template-columns:1fr;gap:16px;}
   @media(min-width:960px){.grid2{grid-template-columns:1fr 1fr;}}
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05);}
-  .panel-head{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#0f172a;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:11px;overflow:hidden;box-shadow:0 4px 14px rgba(27,52,78,.045);}
+  .panel-head{padding:13px 15px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#0f2744;background:linear-gradient(180deg,#fff,#fbfdfe);}
   table{width:100%;border-collapse:collapse;font-size:12px;}
   th{text-align:left;color:var(--muted);font-weight:600;padding:7px 9px;position:sticky;top:0;background:#fafbfd;}
   td{padding:5px 9px;border-top:1px solid var(--border-soft);}
@@ -96,9 +96,9 @@
   .feed-item:last-child{border-bottom:none;}
   .feed-item.muted{color:var(--muted);font-style:italic;}
   .summarybox{color:var(--muted);font-size:12px;}
-  .ops-brief{margin-top:22px;border:1px solid #cfd8e8;border-radius:11px;background:linear-gradient(135deg,#f8fbff,#f4f7fc);padding:16px;}
+  .ops-brief{margin-top:22px;border:1px solid #c6d9e4;border-radius:12px;background:linear-gradient(135deg,#f8fcff,#eff8f7);padding:18px;box-shadow:0 8px 22px rgba(27,52,78,.05);}
   .ops-brief-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
-  .ops-brief-title{font-size:14px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:7px;}
+  .ops-brief-title{font-size:14px;font-weight:800;color:#0f2744;display:flex;align-items:center;gap:7px;}
   .ops-brief-copy{font-size:11.5px;color:var(--muted);margin-top:4px;max-width:720px;line-height:1.45;}
   .ops-score{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;white-space:nowrap;}
   .ops-score-track{width:92px;height:8px;border-radius:5px;background:#e2e8f0;overflow:hidden;}
@@ -109,7 +109,7 @@
   .ops-card-value{font-size:17px;font-weight:700;color:#0f172a;}
   .ops-card-note{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.35;}
   .action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
-  .action-card{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;background:#fff;padding:11px 12px;}
+  .action-card{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:9px;background:#fff;padding:12px 13px;box-shadow:0 3px 10px rgba(27,52,78,.035);}
   .action-card.critical{border-left-color:var(--red);}.action-card.warning{border-left-color:var(--amber);}
   .action-card-title{font-size:11px;font-weight:700;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
   .action-card-text{font-size:11px;color:var(--muted);line-height:1.4;}
@@ -139,15 +139,15 @@
   .checklist-item:hover{background:#eef1f5;}
   .checklist-item.bad{background:var(--red-dim);border-color:var(--red-bd);color:#8a3030;}
   .checklist-item .icon{width:13px;height:13px;flex-shrink:0;}
-  .cockpit{margin-top:22px;border:1px solid #cad7e5;border-radius:12px;background:#f8fbfd;overflow:hidden;}
+  .cockpit{margin-top:22px;border:1px solid #c5d8e2;border-radius:14px;background:#f8fbfd;overflow:hidden;box-shadow:0 10px 30px rgba(27,52,78,.07);}
   .cockpit-nav{display:flex;gap:4px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid #dce6ef;background:#fff;}
   .cockpit-tabs{display:flex;gap:4px;flex-wrap:wrap;}
   .cockpit-tab{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:6px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;}
   .cockpit-tab.active{background:#e8f1ff;border-color:#bfd4f4;color:#174ea6;}
-  .workspace-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:18px;padding:5px;border:1px solid var(--border);border-radius:9px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+  .workspace-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:20px;padding:6px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.92);box-shadow:0 5px 16px rgba(27,52,78,.05);}
   .workspace-tab{border:0;background:transparent;color:var(--muted);border-radius:6px;padding:9px 12px;font-size:11.5px;font-weight:700;cursor:pointer;}
   .workspace-tab:hover{background:#f1f5f9;color:var(--text);}
-  .workspace-tab.active{background:#102f5f;color:#fff;box-shadow:0 2px 5px rgba(16,47,95,.2);}
+  .workspace-tab.active{background:#0f376d;color:#fff;box-shadow:0 4px 9px rgba(16,47,95,.24);}
   .tab-context{font-size:11px;color:var(--muted);margin:14px 0 0;line-height:1.45;}
   .cockpit-body{padding:16px;}
   .cockpit-hero{display:grid;grid-template-columns:1.4fr .9fr;gap:16px;align-items:stretch;}
@@ -523,8 +523,8 @@ function tickSensors(){
 function toggleLive(){
   if(!OFFLINE_MODE) return;
   liveOn = !liveOn;
-  if(liveOn){ logEvent('Offline sensor simulation started - no server connection'); lastSync = new Date(); liveTimer = setInterval(tickSensors, 2600); }
-  else { clearInterval(liveTimer); liveTimer = null; logEvent('Offline sensor simulation stopped'); }
+  if(liveOn){ logEvent('Vehicle data feed started - battery, oil and engine signals are updating'); lastSync = new Date(); liveTimer = setInterval(tickSensors, 2600); }
+  else { clearInterval(liveTimer); liveTimer = null; logEvent('Vehicle data feed stopped'); }
   render();
 }
 
@@ -590,7 +590,7 @@ function renderCloudAnalytics(){
   var dataConfidence = Math.max(0, Math.round(100-(openDefects/fleet.length*100)));
   var overallConfidence = Math.round((batteryConfidence+routeConfidence+dataConfidence)/3);
   var commandTitle = slotResult.gaps.length ? 'Review constraints before dispatch' : 'Dispatch plan is ready for approval';
-  var commandText = slotResult.gaps.length ? slotResult.gaps.length+' route'+(slotResult.gaps.length===1?'':'s')+' remain uncovered in '+selectedSlot.label+'. The AI plan will assign every safe pairing it can find.' : slotResult.assignments.length+' of '+routes.length+' routes have a valid bus and qualified driver in '+selectedSlot.label+'.';
+  var commandText = slotResult.gaps.length ? slotResult.gaps.length+' route'+(slotResult.gaps.length===1?'':'s')+' remain uncovered in '+selectedSlot.label+'. The recommended plan will assign every safe pairing it can find.' : slotResult.assignments.length+' of '+routes.length+' routes have a valid bus and qualified driver in '+selectedSlot.label+'.';
   var insights = [
     {level:lowBuses.length?'high':'normal', title:'Energy readiness', text:lowBuses.length ? lowBuses[0].id+' is at '+lowBuses[0].soc+'% and should be queued for charging before dispatch.' : 'All buses are above the '+RESERVE_SOC+'% charge floor.'},
     {level:slotResult.gaps.length?'high':'normal', title:'Coverage outlook', text:slotResult.gaps.length ? slotResult.gaps.length+' route'+(slotResult.gaps.length===1?'':'s')+' need attention for '+selectedSlot.label+'.' : 'All '+routes.length+' routes have a qualified bus and driver for '+selectedSlot.label+'.'},
@@ -629,7 +629,7 @@ function renderOpsBrief(){
   var readiness = Math.round((eligible/fleet.length*45)+(chargeReady/fleet.length*20)+(clean/fleet.length*15)+(availableDrivers/drivers.length*20));
   var readinessColor = readiness>=80 ? 'var(--green)' : readiness>=60 ? 'var(--amber)' : 'var(--red)';
   function card(label,value,note){return '<div class="ops-card"><div class="ops-card-label">'+label+'</div><div class="ops-card-value">'+value+'</div><div class="ops-card-note">'+note+'</div></div>';}
-  return '<div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('spark')+'Advanced depot decision brief</div><div class="ops-brief-copy">The scheduler scores each dispatch using vehicle availability, battery health, exact route range, shed clearance, maintenance state, route complexity, and driver qualification.</div></div><div class="ops-score"><span style="color:'+readinessColor+';">'+readiness+'% operational readiness</span><span class="ops-score-track"><span class="ops-score-fill" style="width:'+readiness+'%;background:'+readinessColor+';"></span></span></div></div><div class="ops-grid">'+
+  return '<div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('spark')+'Smart scheduling decision centre</div><div class="ops-brief-copy">The scheduling engine evaluates vehicle availability, battery health, exact route range, shed clearance, maintenance state, route complexity, and driver qualification before recommending a dispatch.</div></div><div class="ops-score"><span style="color:'+readinessColor+';">'+readiness+'% operational readiness</span><span class="ops-score-track"><span class="ops-score-fill" style="width:'+readiness+'%;background:'+readinessColor+';"></span></span></div></div><div class="ops-grid">'+
     card('Current slot coverage',allocation.assignments.length+'/'+routes.length,slot.label+' - '+allocation.gaps+' route'+(allocation.gaps===1?'':'s')+' gap'+(allocation.gaps===1?'':'s'))+
     card('Dispatch-ready fleet',eligible+'/'+fleet.length,'passes checklist, sensors, maintenance and charge floor')+
     card('Charge-safe vehicles',chargeReady+'/'+fleet.length,(fleet.length-chargeReady)+' at or below '+RESERVE_SOC+'% reserve')+
@@ -665,8 +665,8 @@ function clearSession(){
 }
 function renderLogin(errorText){
   return '<div class="login-shell"><div class="login-layout">'+
-    '<section class="login-story"><div class="login-mark">'+icon('bus')+'</div><div class="login-eyebrow">Ashok Leyland | Fleet command</div><h2>Make every departure count.</h2><p>Securely access the Chandapura Depot operations cockpit for intelligent allocation, battery readiness, driver matching, and defect response.</p><div class="login-signals"><span class="login-signal">24-bus fleet</span><span class="login-signal">Live-ready telemetry</span></div></section>'+
-    '<section class="login-card"><h1>Welcome back</h1><p class="login-sub">Sign in to continue to the Smart Bus Scheduling System.</p><form id="loginForm"><label class="login-label" for="loginId">User ID</label><input class="login-input" id="loginId" autocomplete="username" placeholder="Enter your user ID" required><label class="login-label" for="loginPassword">Password</label><input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><div class="login-error">'+(errorText||'')+'</div><button class="btn-primary login-submit" type="submit">'+icon('check')+' Sign in to operations</button></form><div class="login-meta">Authorized workspace for Ashok Leyland depot operations.<br>Prototype access is stored only in this browser session.</div></section>'+
+    '<section class="login-story"><div class="login-mark">'+icon('bus')+'</div><div class="login-eyebrow">Ashok Leyland | Fleet command</div><h2>Make every departure count.</h2><p>Securely access the Chandapura Depot operations cockpit for intelligent allocation, battery readiness, driver matching, and live vehicle status.</p><div class="login-signals"><span class="login-signal">24-bus fleet</span><span class="login-signal">Live vehicle data</span></div></section>'+
+    '<section class="login-card"><h1>Welcome back</h1><p class="login-sub">Sign in to continue to the Smart Bus Scheduling System.</p><form id="loginForm"><label class="login-label" for="loginId">User ID</label><input class="login-input" id="loginId" autocomplete="username" placeholder="Enter your user ID" required><label class="login-label" for="loginPassword">Password</label><input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><div class="login-error">'+(errorText||'')+'</div><button class="btn-primary login-submit" type="submit">'+icon('check')+' Sign in to operations</button></form><div class="login-meta">Authorized workspace for Ashok Leyland depot operations.<br>Session data stays in this browser.</div></section>'+
   '</div></div>';
 }
 function bindLogin(){
