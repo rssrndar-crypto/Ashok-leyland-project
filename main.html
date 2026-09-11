@@ -678,37 +678,33 @@ function render(){
 }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'defects',label:'Defects'},{id:'tracking',label:'Live tracking'},{id:'governance',label:'Verification'}];
+  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
 function renderWorkspaceContent(){
   if(workspaceTab==='schedule') return '<p class="tab-context">Build the next departure plan from the selected time window. Allocation checks battery, effective range, wash completion, shed clearance, route category and driver availability.</p>'+renderSlotsSection()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderChartAndRun()+renderResult()+renderPlanningSection();
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderShedChecklist()+renderTablesSection();
-  if(workspaceTab==='defects') return '<p class="tab-context">Prioritize defects per vehicle and recurring depot patterns. Defect details are captured locally and can be verified by the depot and city managers.</p>'+renderDefectDashboard();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderLiveSection()+renderTripMonitor();
-  if(workspaceTab==='governance') return '';
   return renderOpsBrief()+renderActionCenter()+renderKpis();
 }
 
 function renderCockpit(){
-  if(workspaceTab!=='overview' && workspaceTab!=='governance') return '';
+  if(workspaceTab!=='overview') return '';
   var bus = washBusId ? fleet.filter(function(b){return b.id===washBusId;})[0] : null;
   var now = Date.now();
   var remaining = washStartedAt ? Math.max(0, 20-Math.floor((now-washStartedAt)/60000)) : 20;
   var match = bus && bestBusRouteId ? matchScore(bus, routes.filter(function(r){return r.id===bestBusRouteId;})[0]) : Math.round((fleet.filter(isAvailableNow).length/fleet.length)*100);
   var lookup = vehicleLookupMessage ? '<div class="workflow-status">'+vehicleLookupMessage+'</div>' : '';
   var scheduleText = washScheduledAt ? 'Scheduled for '+new Date(washScheduledAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'No wash slot scheduled';
-  var pageBody = workspaceTab==='overview'
-    ? '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions"><button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button><button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div></div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>'
-    : '<p class="page-note">Verification is layered by depot and city. Inspectors capture defects; the internal supervisor receives defect-only information; the external supervisor sees service status; depot and city managers approve the complete record.</p><div class="role-grid"><div class="role-card"><b>Inspector</b><span>Scan vehicle, complete interior/exterior check, mark clean or defect.</span></div><div class="role-card"><b>Internal supervisor</b><span>Receives defect details only and routes action to the depot team.</span></div><div class="role-card"><b>External supervisor</b><span>Sees service state, shed-out status and closure confirmation.</span></div><div class="role-card"><b>Depot manager</b><span>Adds defect categories, verifies depot records and approves shed-out.</span></div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('grid')+' Depot and city verification</h3><div class="workflow-status">Depot: Chandapura Depot<br>Depot manager: required<br>City manager: required for final verification<br>Scope: depot-wise and within-city fleet only</div></div><div class="workflow-card"><h3>'+icon('warn')+' Priority model</h3><div class="workflow-status">High: defect per vehicle or safety-critical item<br>Medium: recurring defect pattern in a specific depot<br>Normal: cosmetic or one-off issue<br><button class="btn-secondary" id="openDefectsBtn" style="margin-top:8px;">Open defect dashboard</button></div></div></div>';
-  return '<div class="cockpit"><div class="cockpit-nav"><div class="cockpit-tabs"><button class="cockpit-tab '+(cockpitPage==='dashboard'?'active':'')+'" data-cockpit-page="dashboard">1. Dispatch cockpit</button><button class="cockpit-tab '+(cockpitPage==='governance'?'active':'')+'" data-cockpit-page="governance">2. Verification &amp; roles</button></div><span class="pill pill-simple">Local depot data only</span></div><div class="cockpit-body">'+pageBody+'</div></div>';
+  var pageBody = '<div class="cockpit-hero"><div><h2 class="cockpit-title">Bus wash, shed-out and schedule</h2><p class="cockpit-copy">A focused depot workflow for charging, washing, inspection, allocation and live movement. Every dispatch decision stays inside the selected depot and uses locally entered fleet data only.</p><div class="cockpit-actions"><button class="btn-primary" id="oneClickSchedule">'+icon('spark')+' Schedule ready bus</button><button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Start 20-min wash</button></div></div><div class="wash-card"><h3>'+icon('clock')+' Wash service window</h3><div class="wash-time">'+(washStartedAt && remaining===0 ? 'READY' : remaining+' min')+'</div><div class="wash-note">'+(bus ? bus.id+' is in wash queue. ' : 'Select a bus to start the wash timer. ')+scheduleText+'</div></div></div><div class="cockpit-grid"><div class="workflow-card"><h3>'+icon('bus')+' Scan vehicle or enter bus number</h3><div class="workflow-row"><input class="workflow-input" id="vehicleLookup" placeholder="e.g. AL101 or scan ID"><button class="btn-secondary" id="lookupVehicle">'+icon('check')+' Find vehicle</button></div>'+lookup+'</div><div class="workflow-card"><h3>'+icon('grid')+' Depot map &amp; readiness</h3><div class="mapbox"><span class="map-point">'+icon('bus')+' Shed-out lane</span><span class="map-point">'+icon('drop')+' Wash bay</span><span class="map-point">'+icon('battery')+' Charge bay</span></div><div class="match-meter"><b style="font-size:11px;white-space:nowrap;">Fleet match</b><div class="bar-track"><div class="bar-fill" style="width:'+match+'%;background:#147d69;"></div></div><b style="font-size:12px;color:#147d69;">'+match+'%</b></div></div></div>';
+  return '<div class="cockpit"><div class="cockpit-nav"><span style="font-size:12px;font-weight:700;color:#15304f;">1. Dispatch cockpit</span><span class="pill pill-simple">Local depot data only</span></div><div class="cockpit-body">'+pageBody+'</div></div>';
 }
 
 function renderHeader(){
   return '<div class="header"><div class="headline"><div class="badge-icon">'+icon('bus')+'</div>' +
     '<div><h1>Smart Bus Scheduling - Chandapura Depot</h1>' +
-    '<p class="sub">Battery, oil &amp; engine sensors, driver grade, route complexity, and defect capture - matched per your Schedule Allocation &amp; Defect Management Guidelines<br>' +
+    '<p class="sub">Vehicle availability, battery charge, expected range, wash completion, maintenance needs, route requirements, and driver availability<br>' +
     '<span style="color:var(--accent-2);font-weight:600;">Fleet: SWITCH EiV12</span>&nbsp;<span style="color:#b3aee0;">|</span>&nbsp;Ashok Leyland Group</p></div></div>' +
     '<div class="user-session"><button class="btn" id="resetBtn">'+icon('refresh')+' Reset all</button><div class="user-avatar">AL</div><div><b style="display:block;font-size:11px;">'+signedInUser.name+'</b><span style="font-size:10px;color:var(--muted);">'+signedInUser.role+'</span></div><button class="btn btn-logout" id="logoutBtn">Sign out</button></div></div>';
 }
@@ -727,7 +723,6 @@ function renderKpis(){
   return '<div class="kpis">' + kpi('Fleet size', fleet.length, 'bus') + kpi('Dispatch-ready', elig, 'check') +
     kpi('Avg battery', avgSoc+'%', 'battery') + kpi('Needs charging', lowBatt, 'spark') + kpi('Needs cleaning', needsClean, 'drop') +
     kpi('Sensor faults', sensorFail, 'engine') + kpi('Maintenance hold', maint, 'wrench') + kpi('Service due', svcDue, 'clipboard') +
-    kpi('Open defects', openDef, 'warn') +
     kpi('Drivers on duty', drvAvail+'/'+drivers.length, 'driver') + '</div>';
 }
 
@@ -799,7 +794,7 @@ function renderShedChecklist(){
     ? '<button class="btn-primary" id="startEngineBtn" style="padding:6px 14px;font-size:12px;">'+icon('spark')+' Start engine</button>'
     : '<button class="btn" id="startEngineBtn" disabled title="'+startBtnTitle+'" style="opacity:.45;cursor:not-allowed;">'+icon('wrench')+' Start engine</button>';
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
-    '<span>'+icon('clipboard')+'Shed exit inspection (OHM_004 pre-departure checklist) <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; flags here open/close rows in the Defect log below</span></span>' +
+    '<span>'+icon('clipboard')+'Shed-out inspection checklist <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; all checks must pass before allocation</span></span>' +
     '<select id="inspectSel">'+options+'</select></div>' +
     '<div class="panel" style="padding:14px 16px;">' +
       '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">' +
@@ -815,11 +810,11 @@ function renderShedChecklist(){
       chargeTimeNote +
       routeNote +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
-        '<span style="font-size:11px;color:var(--muted);">Exterior check ('+extDefects+' defect'+(extDefects!==1?'s':'')+')</span>'+
+        '<span style="font-size:11px;color:var(--muted);">Exterior check ('+extDefects+' item'+(extDefects!==1?'s':'')+' to clear)</span>'+
         '<button class="btn" id="markAllClearBtn" style="padding:4px 10px;font-size:11px;">'+icon('check')+' Mark all clear</button>'+
       '</div>' +
       '<div class="checklist-grid">'+itemGrid(EXTERIOR_ITEMS, cl.ext, 'ext')+'</div>' +
-      '<div style="font-size:11px;color:var(--muted);margin:14px 0 6px;">Interior check ('+intDefects+' defect'+(intDefects!==1?'s':'')+')</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin:14px 0 6px;">Interior check ('+intDefects+' item'+(intDefects!==1?'s':'')+' to clear)</div>' +
       '<div class="checklist-grid">'+itemGrid(INTERIOR_ITEMS, cl.int, 'int')+'</div>' +
     '</div></div>';
 }
@@ -1150,7 +1145,6 @@ function bindEvents(){
   var logoutBtn = document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.onclick = signOut;
   document.querySelectorAll('.workspace-tab').forEach(function(el){ el.onclick = function(){ workspaceTab = el.getAttribute('data-workspace-tab'); cockpitPage = workspaceTab==='governance' ? 'governance' : 'dashboard'; render(); }; });
-  document.querySelectorAll('.cockpit-tab').forEach(function(el){ el.onclick = function(){ cockpitPage = el.getAttribute('data-cockpit-page'); workspaceTab = cockpitPage==='governance' ? 'governance' : 'overview'; render(); }; });
   var lookupVehicle = document.getElementById('lookupVehicle');
   if(lookupVehicle) lookupVehicle.onclick = function(){
     var query = document.getElementById('vehicleLookup').value.trim().toUpperCase();
@@ -1173,8 +1167,6 @@ function bindEvents(){
     result = computeAllocation(); startTrips(result.assignments); washScheduledAt = null;
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
-  var openDefectsBtn = document.getElementById('openDefectsBtn');
-  if(openDefectsBtn) openDefectsBtn.onclick = function(){ workspaceTab = 'defects'; cockpitPage = 'dashboard'; render(); };
   var resetBtn = document.getElementById('resetBtn');
   if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; vehicleLookupMessage=''; seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
