@@ -175,6 +175,14 @@
   .role-card b{display:block;font-size:11px;color:#15304f;margin-bottom:4px;}
   .role-card span{font-size:10.5px;color:var(--muted);line-height:1.35;}
   .page-note{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+  .signal-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:14px;}
+  .signal-card{border:1px solid #d5e1e8;border-radius:9px;background:linear-gradient(145deg,#fff,#f5f9fb);padding:11px 12px;}
+  .signal-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;}
+  .signal-value{font-size:19px;font-weight:800;color:#0f2744;margin-top:4px;}
+  .signal-note{font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:3px;}
+  .signal-bar{height:5px;border-radius:4px;background:#e4edf1;overflow:hidden;margin-top:8px;}.signal-bar span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#0b4ea2,#087d78);}
+  .alert-list{display:grid;gap:6px;margin-top:10px;}.alert-item{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border-soft);border-left:3px solid var(--accent);border-radius:7px;padding:8px 10px;background:#fff;font-size:11px;color:#40536a;line-height:1.4;}.alert-item.warn{border-left-color:var(--amber);}.alert-item.critical{border-left-color:var(--red);}
+  @media(max-width:760px){.signal-strip{grid-template-columns:repeat(2,minmax(0,1fr));}}
   .setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
   .setup-field{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);}
   .setup-field input,.setup-field select{font-family:inherit;font-size:12px;padding:8px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);}
@@ -703,10 +711,43 @@ function renderWorkspaceNav(){
 
 function renderWorkspaceContent(){
   if(workspaceTab==='schedule') return '<p class="tab-context">Build the next departure plan from the selected time window. Allocation checks battery, effective range, wash completion, shed clearance, route category and driver availability.</p>'+renderSlotsSection()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderChartAndRun()+renderResult()+renderPlanningSection();
-  if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderShedChecklist()+renderTablesSection();
-  if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderLiveSection()+renderTripMonitor();
+  if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
+  if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
   if(workspaceTab==='setup') return renderDepotSetup();
   return renderOpsBrief()+renderActionCenter()+renderKpis();
+}
+
+function renderFleetReadiness(){
+  var clean = fleet.filter(function(b){return b.interiorClean&&b.exteriorClean;}).length;
+  var charge = fleet.filter(function(b){return !needsCharge(b);}).length;
+  var available = fleet.filter(isAvailableNow).length;
+  var serviceDue = fleet.filter(function(b){return b.odoSinceService>=SERVICE_INTERVAL_KM;});
+  var readiness = Math.round((available/fleet.length*50)+(clean/fleet.length*25)+(charge/fleet.length*25));
+  var categoryCounts = {A:0,B:0,C:0};
+  fleet.forEach(function(b){ categoryCounts[rangeCategory(effectiveRange(b))]++; });
+  return '<div class="panel" style="margin-top:18px;"><div class="panel-head"><span>Fleet readiness signals</span><span class="pill '+(readiness>=80?'pill-simple':readiness>=60?'pill-moderate':'pill-complex')+'">'+readiness+'% ready</span></div><div style="padding:13px 15px;"><div class="signal-strip" style="margin-top:0;">'+
+    '<div class="signal-card"><div class="signal-label">Dispatch pool</div><div class="signal-value">'+available+'/'+fleet.length+'</div><div class="signal-note">available in depot now</div><div class="signal-bar"><span style="width:'+(available/fleet.length*100)+'%;"></span></div></div>'+
+    '<div class="signal-card"><div class="signal-label">Clean service</div><div class="signal-value">'+clean+'/'+fleet.length+'</div><div class="signal-note">interior and exterior clear</div><div class="signal-bar"><span style="width:'+(clean/fleet.length*100)+'%;"></span></div></div>'+
+    '<div class="signal-card"><div class="signal-label">Range mix</div><div class="signal-value">'+categoryCounts.A+' / '+categoryCounts.B+' / '+categoryCounts.C+'</div><div class="signal-note">Category A / B / C fleet</div></div>'+
+    '<div class="signal-card"><div class="signal-label">Service queue</div><div class="signal-value">'+serviceDue.length+'</div><div class="signal-note">vehicles at service threshold</div></div>'+
+    '</div></div></div>';
+}
+
+function renderTrackingInsights(){
+  var active = Object.keys(trips).filter(function(id){return !trips[id].done;});
+  var lowBattery = active.filter(function(id){var b=fleet.filter(function(x){return x.id===id;})[0];return b&&needsCharge(b);});
+  var harsh = active.filter(function(id){return trips[id].harshEvents>0;});
+  var returnReady = Object.keys(trips).filter(function(id){return trips[id].done;}).length;
+  var alerts = [];
+  if(lowBattery.length) alerts.push('<div class="alert-item critical">'+icon('warn')+'<span>'+lowBattery.join(', ')+' reached the charge reserve while active. Review the next assignment before dispatch.</span></div>');
+  if(harsh.length) alerts.push('<div class="alert-item warn">'+icon('gauge')+'<span>Harsh-driving signals detected for '+harsh.join(', ')+'. Check driver feedback and vehicle condition on return.</span></div>');
+  if(returnReady) alerts.push('<div class="alert-item">'+icon('check')+'<span>'+returnReady+' vehicle'+(returnReady===1?' is':'s are')+' marked returned and can re-enter the depot allocation pool.</span></div>');
+  if(!alerts.length) alerts.push('<div class="alert-item">'+icon('check')+'<span>No active risk signals. Start the live feed to receive battery, engine, oil and trip updates.</span></div>');
+  return '<div class="panel" style="margin-top:18px;"><div class="panel-head"><span>Live decision signals</span><span class="pill pill-simple">'+active.length+' active</span></div><div style="padding:13px 15px;"><div class="signal-strip" style="margin-top:0;">'+
+    '<div class="signal-card"><div class="signal-label">Active trips</div><div class="signal-value">'+active.length+'</div><div class="signal-note">vehicles currently out</div></div>'+
+    '<div class="signal-card"><div class="signal-label">Driver feedback</div><div class="signal-value">'+harsh.length+'</div><div class="signal-note">trips with harsh events</div></div>'+
+    '<div class="signal-card"><div class="signal-label">Battery watch</div><div class="signal-value">'+lowBattery.length+'</div><div class="signal-note">active vehicles at reserve</div></div>'+
+    '<div class="signal-card"><div class="signal-label">Returned</div><div class="signal-value">'+returnReady+'</div><div class="signal-note">ready for reallocation</div></div></div><div class="alert-list">'+alerts.join('')+'</div></div></div>';
 }
 
 function renderDepotSetup(){
