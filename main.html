@@ -429,6 +429,7 @@ function makeDrivers(){
 }
 var drivers = makeDrivers();
 var slotId = 't2';
+var scheduleDate = new Date().toISOString().slice(0,10);
 var bestBusRouteId = null;
 var result = null;
 var daySummary = null;
@@ -768,7 +769,7 @@ function renderLiveSection(){
 }
 
 function renderSlotsSection(){
-  var html = '<div class="section"><div class="section-label">'+icon('clock')+'Time slot to allocate against</div><div class="slots">';
+  var html = '<div class="section"><div class="section-label" style="justify-content:space-between;"><span>'+icon('clock')+'Schedule date and time slot</span><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">Start date<input type="date" id="scheduleDateInput" value="'+scheduleDate+'" style="background:#fff;border:1px solid var(--border);border-radius:5px;padding:5px 7px;color:var(--text);font:11px inherit;"></label></div><div class="slots">';
   TIME_SLOTS.forEach(function(s){
     html += '<button class="slot'+(s.id===slotId?' active':'')+'" data-slot="'+s.id+'"><div class="t1">'+s.label+'</div><div class="t2">'+s.cat+'</div></button>';
   });
@@ -1167,7 +1168,7 @@ function renderResult(){
       }).join('') + '</div>';
   }
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
-    '<span>Allocation result - '+slot.label+' ('+slot.cat+')</span>' +
+    '<span>Allocation result - '+scheduleDate+' &middot; '+slot.label+' ('+slot.cat+')</span>' +
     '<span style="color:var(--muted);font-weight:400;">'+result.assignments.length+' assigned, '+result.gaps.length+' gaps</span></div>' +
     rows + gapsHtml + '</div>';
 }
@@ -1232,7 +1233,7 @@ function bindEvents(){
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ cloudAnalysisAt = new Date(); logEvent('Cloud AI snapshot refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
   var aiDispatchBtn = document.getElementById('aiDispatchBtn');
@@ -1335,6 +1336,8 @@ function bindEvents(){
   }
   var liveBtn = document.getElementById('liveBtn');
   if(liveBtn) liveBtn.onclick = toggleLive;
+  var scheduleDateInput = document.getElementById('scheduleDateInput');
+  if(scheduleDateInput) scheduleDateInput.onchange = function(){ scheduleDate = this.value || scheduleDate; result = null; render(); };
   document.querySelectorAll('.slot').forEach(function(el){ el.onclick = function(){ slotId = el.getAttribute('data-slot'); result = null; render(); }; });
   var runBtn = document.getElementById('runBtn');
   if(runBtn) runBtn.onclick = function(){ if(!verificationState.depot || !verificationState.city){ alert('Complete depot manager and city manager verification in Depot setup before scheduling.'); return; } result = computeAllocation(); startTrips(result.assignments); render(); };
