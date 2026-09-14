@@ -338,11 +338,11 @@ function makeFleet(){
 var fleet = makeFleet();
 var AUTH_USERS = [
   {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['overview','schedule','fleet','tracking','setup']},
-  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['overview','fleet','tracking']},
-  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['overview','schedule','fleet','tracking']},
-  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','tracking']},
+  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['overview','schedule','fleet','tracking','setup']},
+  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
+  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup']},
-  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','tracking','setup']}
+  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup']}
 ];
 var SESSION_KEY = 'ashok-leyland-session';
 var signedInUser = null;
@@ -725,9 +725,9 @@ function render(){
 }
 
 function canAccessTab(tab){ return !!signedInUser && signedInUser.tabs.indexOf(tab)!==-1; }
-function canSchedule(){ return !!signedInUser && ['Depot Operations','Internal Supervisor','Depot Manager','City Manager'].indexOf(signedInUser.role)!==-1; }
-function canEditDepot(){ return !!signedInUser && ['Depot Operations','Depot Manager'].indexOf(signedInUser.role)!==-1; }
-function canVerifyCity(){ return !!signedInUser && ['Depot Operations','City Manager'].indexOf(signedInUser.role)!==-1; }
+function canSchedule(){ return !!signedInUser; }
+function canEditDepot(){ return !!signedInUser; }
+function canVerifyCity(){ return !!signedInUser; }
 
 function renderWorkspaceNav(){
   var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'}];
