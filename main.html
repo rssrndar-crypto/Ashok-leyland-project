@@ -452,7 +452,7 @@ var scheduleDate = new Date().toISOString().slice(0,10);
 var bestBusRouteId = null;
 var result = null;
 var daySummary = null;
-var cloudAnalysisAt = null;
+var decisionReviewAt = null;
 var cockpitPage = 'dashboard';
 var workspaceTab = 'overview';
 var depotNo = 'DEP-CHP-01';
@@ -593,7 +593,7 @@ function runFullDay(){
   render();
 }
 
-function renderCloudAnalytics(){
+function renderOperationsIntelligence(){
   var eligible = fleet.filter(isEligible).length;
   var activeTrips = Object.keys(trips).filter(function(id){return !trips[id].done;}).length;
   var openDefects = defectLog.filter(function(d){return d.status==='Open';}).length;
@@ -617,7 +617,7 @@ function renderCloudAnalytics(){
     {level:serviceDue.length?'medium':'normal', title:'Predictive service', text:serviceDue.length ? serviceDue.map(function(b){return b.id;}).join(', ')+' reached the '+SERVICE_INTERVAL_KM.toLocaleString('en-IN')+' km service threshold.' : 'No bus has crossed the current service threshold.'}
   ];
   var insightHtml = insights.map(function(insight){ return '<div class="cloud-insight '+insight.level+'"><div class="cloud-insight-title"><span>'+icon(insight.level==='high'?'warn':insight.level==='medium'?'clock':'check')+insight.title+'</span><span class="pill '+(insight.level==='high'?'pill-complex':insight.level==='medium'?'pill-moderate':'pill-simple')+'">'+(insight.level==='high'?'Priority':insight.level==='medium'?'Watch':'Clear')+'</span></div><div class="cloud-insight-text">'+insight.text+'</div></div>'; }).join('');
-  var analysisText = cloudAnalysisAt ? 'Last analysis '+pad(cloudAnalysisAt.getHours())+':'+pad(cloudAnalysisAt.getMinutes())+':'+pad(cloudAnalysisAt.getSeconds()) : 'Analysis not run yet - refresh for a new fleet snapshot';
+  var analysisText = decisionReviewAt ? 'Last review '+pad(decisionReviewAt.getHours())+':'+pad(decisionReviewAt.getMinutes())+':'+pad(decisionReviewAt.getSeconds()) : 'Review not run yet - refresh for a current fleet snapshot';
   var demandRows = routes.slice().sort(function(a,b){return b.schedules-a.schedules;}).slice(0,4).map(function(route){
     var pressure = route.schedules>=25 ? 'High' : route.schedules>=15 ? 'Medium' : 'Normal';
     var pressureClass = pressure==='High' ? 'pill-complex' : pressure==='Medium' ? 'pill-moderate' : 'pill-simple';
@@ -627,14 +627,14 @@ function renderCloudAnalytics(){
     return '<div class="cloud-depot '+(index===0?'live':'')+'"><b>'+name+'</b><span>'+ (index===0 ? eligible+' ready / '+fleet.length+' buses' : 'Pilot queued')+'</span></div>';
   }).join('');
   return '<div class="section"><div class="cloud-panel">'+
-    '<div class="cloud-head"><div><div class="cloud-title">'+icon('grid')+'Cloud operations intelligence</div><div class="cloud-sub">Cloud-ready analytics layer for telemetry, schedule demand, defect trends, and depot rollout. Current inputs are simulated locally until production APIs are connected.</div></div><button class="btn-secondary" type="button" id="cloudAnalyzeBtn">'+icon('spark')+' Refresh AI analysis</button></div>'+
+    '<div class="cloud-head"><div><div class="cloud-title">'+icon('grid')+'Operations intelligence</div><div class="cloud-sub">Decision support for telemetry, schedule demand, defect trends, depot readiness, and controlled dispatch release.</div></div><button class="btn-secondary" type="button" id="cloudAnalyzeBtn">'+icon('spark')+' Refresh decision review</button></div>'+
     '<div class="cloud-grid">'+
-      '<div class="cloud-metric"><div class="cloud-metric-label">Data mode</div><div class="cloud-metric-value">Offline</div><div class="cloud-metric-note">All signals stay in this browser</div></div>'+
-      '<div class="cloud-metric"><div class="cloud-metric-label">AI model confidence</div><div class="cloud-metric-value">'+confidence+'%</div><div class="cloud-bar"><div class="cloud-bar-fill" style="width:'+confidence+'%;"></div></div></div>'+
-      '<div class="cloud-metric"><div class="cloud-metric-label">Active cloud trips</div><div class="cloud-metric-value">'+activeTrips+'</div><div class="cloud-metric-note">Trip progress and battery drain monitored</div></div>'+
+      '<div class="cloud-metric"><div class="cloud-metric-label">Decision mode</div><div class="cloud-metric-value">Local</div><div class="cloud-metric-note">All signals stay in this browser</div></div>'+
+      '<div class="cloud-metric"><div class="cloud-metric-label">Decision confidence</div><div class="cloud-metric-value">'+confidence+'%</div><div class="cloud-bar"><div class="cloud-bar-fill" style="width:'+confidence+'%;"></div></div></div>'+
+      '<div class="cloud-metric"><div class="cloud-metric-label">Active trips</div><div class="cloud-metric-value">'+activeTrips+'</div><div class="cloud-metric-note">Trip progress and battery drain monitored</div></div>'+
       '<div class="cloud-metric"><div class="cloud-metric-label">Open defect signals</div><div class="cloud-metric-value">'+openDefects+'</div><div class="cloud-metric-note">Prioritized for corrective action</div></div>'+
       '<div class="cloud-metric"><div class="cloud-metric-label">Fleet availability</div><div class="cloud-metric-value">'+eligible+'/'+fleet.length+'</div><div class="cloud-metric-note">Eligible buses for dispatch</div></div>'+
-    '</div><div class="cloud-insights">'+insightHtml+'</div><div class="confidence-breakdown"><div class="confidence-item"><strong><span>Battery signal</span><span>'+batteryConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+batteryConfidence+'%;"></div></div></div><div class="confidence-item"><strong><span>Route coverage</span><span>'+routeConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+routeConfidence+'%;"></div></div></div><div class="confidence-item"><strong><span>Data quality</span><span>'+dataConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+dataConfidence+'%;"></div></div></div></div><div class="cloud-command"><div class="cloud-command-copy"><b>'+commandTitle+'</b>'+commandText+' Overall decision confidence: '+overallConfidence+'%.</div><button class="btn-primary" type="button" id="aiDispatchBtn">'+icon('spark')+' Apply AI dispatch plan</button></div><div class="cloud-analysis-meta">'+analysisText+' &middot; Signals are calculated locally from fleet, allocation, defect, and driver data until a production cloud API is connected.</div><div class="cloud-routes"><div class="cloud-list"><div class="cloud-list-title">Schedule demand forecast</div>'+demandRows+'</div><div class="cloud-list"><div class="cloud-list-title">Multi-depot rollout status</div><div class="cloud-depots">'+depots+'</div></div></div>'+
+    '</div><div class="cloud-insights">'+insightHtml+'</div><div class="confidence-breakdown"><div class="confidence-item"><strong><span>Battery signal</span><span>'+batteryConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+batteryConfidence+'%;"></div></div></div><div class="confidence-item"><strong><span>Route coverage</span><span>'+routeConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+routeConfidence+'%;"></div></div></div><div class="confidence-item"><strong><span>Data quality</span><span>'+dataConfidence+'%</span></strong><div class="confidence-track"><div class="confidence-fill" style="width:'+dataConfidence+'%;"></div></div></div></div><div class="cloud-command"><div class="cloud-command-copy"><b>'+commandTitle+'</b>'+commandText+' Overall decision confidence: '+overallConfidence+'%.</div><button class="btn-primary" type="button" id="decisionDispatchBtn">'+icon('spark')+' Apply dispatch recommendation</button></div><div class="cloud-analysis-meta">'+analysisText+' &middot; Signals are calculated locally from fleet, allocation, defect, and driver data.</div><div class="cloud-routes"><div class="cloud-list"><div class="cloud-list-title">Schedule demand forecast</div>'+demandRows+'</div><div class="cloud-list"><div class="cloud-list-title">Multi-depot rollout status</div><div class="cloud-depots">'+depots+'</div></div></div>'+
   '</div></div>';
 }
 
@@ -739,7 +739,7 @@ function renderWorkspaceContent(){
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
   if(workspaceTab==='setup') return renderDepotSetup();
-  return renderOpsBrief()+renderActionCenter()+renderKpis();
+  return renderOpsBrief()+renderActionCenter()+renderOperationsIntelligence()+renderKpis();
 }
 
 function renderFleetReadiness(){
@@ -1317,11 +1317,11 @@ function bindEvents(){
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; cloudAnalysisAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; decisionReviewAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
-  if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ cloudAnalysisAt = new Date(); logEvent('Cloud AI snapshot refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
-  var aiDispatchBtn = document.getElementById('aiDispatchBtn');
-  if(aiDispatchBtn) aiDispatchBtn.onclick = function(){ result = computeAllocation(); startTrips(result.assignments); cloudAnalysisAt = new Date(); logEvent('AI dispatch plan applied for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' route assignments created'); render(); };
+  if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ decisionReviewAt = new Date(); logEvent('Decision review refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
+  var decisionDispatchBtn = document.getElementById('decisionDispatchBtn');
+  if(decisionDispatchBtn) decisionDispatchBtn.onclick = function(){ if(!fleet.some(function(b){return workflowReady(b) && isEligible(b);})) { vehicleLookupMessage = 'Dispatch recommendation held: no bus has completed the charging, parking, wash, and release sequence.'; render(); return; } result = computeAllocation(); startTrips(result.assignments); decisionReviewAt = new Date(); logEvent('Dispatch recommendation applied for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' route assignments created'); render(); };
   var costPerChargeIn = document.getElementById('costPerChargeIn');
   if(costPerChargeIn) costPerChargeIn.onchange = function(){ costPerUnplannedCharge = Math.max(0, Number(this.value)||0); render(); };
   var inspectSel = document.getElementById('inspectSel');
