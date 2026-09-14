@@ -789,7 +789,7 @@ function renderWorkspaceContent(){
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
   if(workspaceTab==='setup') return renderDepotSetup();
-  return renderOpsBrief()+renderActionCenter()+renderOperationsIntelligence()+renderKpis()+renderDepartureReadiness();
+  return renderOpsBrief()+renderActionCenter()+renderKpis()+renderDepartureReadiness();
 }
 
 function renderFleetReadiness(){
