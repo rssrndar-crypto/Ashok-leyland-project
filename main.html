@@ -342,7 +342,8 @@ var AUTH_USERS = [
   {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup']},
-  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup']}
+  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup']},
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']}
 ];
 var SESSION_KEY = 'ashok-leyland-session';
 var signedInUser = null;
@@ -719,8 +720,9 @@ function signOut(){
 function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
+  if(signedInUser.role==='Charging Station') workspaceTab = 'charging';
   if(!canAccessTab(workspaceTab)) workspaceTab = 'overview';
-  app.innerHTML = renderHeader() + renderWorkspaceNav() + renderCockpit() + renderWorkspaceContent();
+  app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : renderCockpit() + renderWorkspaceContent());
   bindEvents();
 }
 
@@ -730,8 +732,24 @@ function canEditDepot(){ return !!signedInUser; }
 function canVerifyCity(){ return !!signedInUser; }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'}];
+  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'},{id:'charging',label:'Charging station'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.filter(function(tab){return canAccessTab(tab.id);}).map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
+}
+
+function renderChargingStation(){
+  var charged = fleet.filter(function(b){return b.chargeConfirmed && b.soc>=98;}).length;
+  var charging = fleet.filter(function(b){return !b.chargeConfirmed || b.soc<98;}).length;
+  var rows = fleet.map(function(bus){
+    var full = bus.chargeConfirmed && bus.soc>=98;
+    var status = full ? '<span class="pill pill-simple">Full charge confirmed</span>' : bus.soc<=RESERVE_SOC ? '<span class="pill pill-complex">Needs charging</span>' : '<span class="pill pill-moderate">Charging required</span>';
+    var action = full ? '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">Confirmed</button>' : '<button class="btn-primary confirm-charge-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('battery')+' Confirm 100%</button>';
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><strong>'+bus.soc+'%</strong><div class="bar-track" style="margin-top:5px;height:8px;"><div class="bar-fill" style="width:'+bus.soc+'%;background:'+(full?'var(--green)':'var(--amber)')+';"></div></div></td><td>'+status+'</td><td>'+(bus.parkedAfterCharge?'Parked at depot':'Awaiting depot parking')+'</td><td>'+action+'</td></tr>';
+  }).join('');
+  return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('battery')+'Charging station control</div><div class="ops-brief-copy">Review each bus charge level and manually confirm when the battery reaches 100%. Confirmed buses then move to depot parking before washing and departure release.</div></div><span class="pill pill-simple">Station operator</span></div><div class="ops-grid">'+
+    '<div class="ops-card"><div class="ops-card-label">Fleet at full charge</div><div class="ops-card-value">'+charged+'/'+fleet.length+'</div><div class="ops-card-note">manually confirmed at 98-100%</div></div>'+
+    '<div class="ops-card"><div class="ops-card-label">Charging queue</div><div class="ops-card-value">'+charging+'</div><div class="ops-card-note">requires charging confirmation</div></div>'+
+    '<div class="ops-card"><div class="ops-card-label">Reserve alerts</div><div class="ops-card-value">'+fleet.filter(needsCharge).length+'</div><div class="ops-card-note">at or below '+RESERVE_SOC+'% SOC</div></div></div></div>'+
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus charge register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual confirmation updates allocation readiness</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Charge status</th><th>Next movement</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
 function renderWorkspaceContent(){
@@ -1302,6 +1320,17 @@ function bindEvents(){
     vehicleLookupMessage = bus.id+' is fully charged. Manually notify depot parking before washing.';
     logEvent(bus.id+' charge completed - ready for clean service'); render();
   };
+  document.querySelectorAll('.confirm-charge-station').forEach(function(el){
+    el.onclick = function(){
+      var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
+      if(!bus) return;
+      bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = false; bus.washCompletedAt = null; bus.departureReady = false;
+      washBusId = bus.id;
+      logEvent(bus.id+' full charge manually confirmed at charging station');
+      vehicleLookupMessage = bus.id+' is fully charged. Move it to depot parking.';
+      render();
+    };
+  });
   var parkBusBtn = document.getElementById('parkBusBtn');
   if(parkBusBtn) parkBusBtn.onclick = function(){ var bus = fleet.filter(function(b){return b.id===washBusId;})[0]; if(!bus || !bus.chargeConfirmed) return; bus.parkedAfterCharge = true; vehicleLookupMessage = bus.id+' manually confirmed parked at the depot. Wash is now available when due.'; logEvent(bus.id+' manually confirmed parked after full charge'); render(); };
   var washCompleteBtn = document.getElementById('washCompleteBtn');
