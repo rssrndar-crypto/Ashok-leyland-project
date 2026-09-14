@@ -795,8 +795,8 @@ function renderCockpit(){
   var match = bus && bestBusRouteId ? matchScore(bus, routes.filter(function(r){return r.id===bestBusRouteId;})[0]) : Math.round((fleet.filter(isAvailableNow).length/fleet.length)*100);
   var lookup = vehicleLookupMessage ? '<div class="workflow-status">'+vehicleLookupMessage+'</div>' : '';
   var scheduleText = bus && bus.lastWashAt ? 'Next wash due '+new Date(bus.lastWashAt+WASH_INTERVAL_DAYS*24*60*60*1000).toLocaleDateString() : 'No wash recorded';
-  var chargeText = bus ? (bus.chargeConfirmed ? 'Full charge confirmed - move bus to depot parking' : 'Charging station: full charge confirmation required') : 'Select a bus to update charging status';
-  var chargeButton = bus && !bus.chargeConfirmed ? '<button class="btn" id="chargeCompleteBtn" style="margin-top:7px;padding:5px 9px;font-size:11px;">'+icon('battery')+' Notify full charged</button>' : '';
+  var chargeText = bus ? (bus.chargeConfirmed ? 'Full charge confirmed manually - move bus to depot parking' : 'Charging station: enter the bus, then confirm it is fully charged') : 'Select a bus to update charging status';
+  var chargeButton = bus ? '<button class="btn" id="chargeCompleteBtn" style="margin-top:7px;padding:5px 9px;font-size:11px;">'+icon('battery')+' '+(bus.chargeConfirmed?'Reconfirm 100% charged':'Confirm 100% charged')+'</button>' : '';
   var parkingButton = bus && bus.chargeConfirmed && !bus.parkedAfterCharge ? '<button class="btn" id="parkBusBtn">'+icon('bus')+' Notify parked at depot</button>' : '';
   var washButton = bus && bus.parkedAfterCharge && (washDue(bus)||!bus.washCompletedAt) ? '<button class="btn-secondary" id="startWashBtn">'+icon('drop')+' Send to wash</button>' : '';
   var washCompleteButton = bus && bus.washStartedAt && remaining===0 && !bus.washCompletedAt ? '<button class="btn" id="washCompleteBtn" style="margin-top:7px;padding:5px 9px;font-size:11px;">'+icon('check')+' Notify wash complete</button>' : '';
@@ -1462,7 +1462,7 @@ function bindEvents(){
     };
   });
 }
-function updateBus(id, field, value){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = value; render(); }
+function updateBus(id, field, value){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = value; if(field==='soc' && value<98){ b.chargeConfirmed=false; b.parkedAfterCharge=false; b.washCompletedAt=null; b.departureReady=false; } render(); }
 function toggleBus(id, field){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = !b[field]; render(); }
 
 restoreSession();
