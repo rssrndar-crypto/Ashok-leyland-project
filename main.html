@@ -763,14 +763,25 @@ function renderWashStation(){
     var remaining = running ? Math.max(0, 20-Math.floor((Date.now()-bus.washStartedAt)/60000)) : 0;
     var readyForWash = bus.chargeConfirmed && bus.parkedAfterCharge;
     var status = running ? '<span class="pill pill-moderate">In wash - '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Wash due</span>' : '<span class="pill pill-complex">Waiting for parking</span>') : '<span class="pill pill-simple">Washed - not due</span>';
-    var action = running ? (remaining===0 ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('check')+' Confirm wash complete</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">Wash in progress</button>') : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash</button>' : '<span style="color:var(--muted);font-size:11px;">'+(readyForWash?'Not due yet':'Charge and park first')+'</span>');
-    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
+    var action = running ? (remaining===0 ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('check')+' Confirm wash complete</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">Wash in progress</button>') : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">'+icon('drop')+' '+(readyForWash?'Wash not due':'Charge and park first')+'</button>');
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><strong>'+bus.soc+'%</strong></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
   }).join('');
   return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('drop')+'Bus wash station</div><div class="ops-brief-copy">Wash buses every three days after charging and depot parking. Start the wash manually, wait for the 20-minute service window, then confirm completion so the depot can release the bus for departure.</div></div><span class="pill pill-simple">Wash operator</span></div><div class="ops-grid">'+
     '<div class="ops-card"><div class="ops-card-label">Wash due</div><div class="ops-card-value">'+due+'</div><div class="ops-card-note">buses requiring service</div></div>'+
     '<div class="ops-card"><div class="ops-card-label">In wash</div><div class="ops-card-value">'+active+'</div><div class="ops-card-note">20-minute service window</div></div>'+
     '<div class="ops-card"><div class="ops-card-label">Current wash clear</div><div class="ops-card-value">'+complete+'/'+fleet.length+'</div><div class="ops-card-note">within the three-day interval</div></div></div></div>'+
-    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual completion updates departure readiness</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual completion updates departure readiness</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+}
+
+function renderDepartureReadiness(){
+  var ready = fleet.filter(function(b){return isAvailableNow(b);});
+  var rows = fleet.map(function(bus){
+    var readyNow = isAvailableNow(bus);
+    var state = readyNow ? '<span class="pill pill-simple">Ready for departure</span>' : '<span class="pill pill-moderate">Hold</span>';
+    var reason = readyNow ? 'All charge, parking, wash, checklist, sensor, and release gates passed.' : !bus.chargeConfirmed || bus.soc<98 ? 'Full charge confirmation required.' : !bus.parkedAfterCharge ? 'Depot parking confirmation required.' : washDue(bus)||!bus.washCompletedAt ? 'Three-day wash required.' : !bus.departureReady ? 'Manual departure release required.' : 'Checklist, sensor, maintenance, or route gate is blocked.';
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><strong>'+bus.soc+'%</strong><div class="bar-track" style="margin-top:5px;height:8px;"><div class="bar-fill" style="width:'+bus.soc+'%;background:'+(bus.soc>=98?'var(--green)':'var(--amber)')+';"></div></div></td><td>'+state+'</td><td style="font-size:11px;color:var(--muted);">'+reason+'</td></tr>';
+  }).join('');
+  return '<div class="section"><div class="section-label">'+icon('check')+'Departure readiness register <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; buses cleared to leave the depot</span></div><div class="panel"><div class="panel-head"><span>'+ready.length+' of '+fleet.length+' buses ready</span><span style="color:var(--muted);font-weight:400;font-size:11px;">charge percentage and release gates</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Departure status</th><th>Current blocker</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
 function renderWorkspaceContent(){
@@ -778,7 +789,7 @@ function renderWorkspaceContent(){
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
   if(workspaceTab==='setup') return renderDepotSetup();
-  return renderOpsBrief()+renderActionCenter()+renderOperationsIntelligence()+renderKpis();
+  return renderOpsBrief()+renderActionCenter()+renderOperationsIntelligence()+renderKpis()+renderDepartureReadiness();
 }
 
 function renderFleetReadiness(){
