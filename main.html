@@ -343,7 +343,8 @@ var AUTH_USERS = [
   {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup']},
-  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']}
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']},
+  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['washing']}
 ];
 var SESSION_KEY = 'ashok-leyland-session';
 var signedInUser = null;
@@ -721,8 +722,9 @@ function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
   if(signedInUser.role==='Charging Station') workspaceTab = 'charging';
+  if(signedInUser.role==='Bus Wash') workspaceTab = 'washing';
   if(!canAccessTab(workspaceTab)) workspaceTab = 'overview';
-  app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : renderCockpit() + renderWorkspaceContent());
+  app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : signedInUser.role==='Bus Wash' ? renderWashStation() : renderCockpit() + renderWorkspaceContent());
   bindEvents();
 }
 
@@ -732,7 +734,7 @@ function canEditDepot(){ return !!signedInUser; }
 function canVerifyCity(){ return !!signedInUser; }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'},{id:'charging',label:'Charging station'}];
+  var tabs = [{id:'overview',label:'Overview'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'},{id:'charging',label:'Charging station'},{id:'washing',label:'Bus wash'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.filter(function(tab){return canAccessTab(tab.id);}).map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
@@ -750,6 +752,25 @@ function renderChargingStation(){
     '<div class="ops-card"><div class="ops-card-label">Charging queue</div><div class="ops-card-value">'+charging+'</div><div class="ops-card-note">requires charging confirmation</div></div>'+
     '<div class="ops-card"><div class="ops-card-label">Reserve alerts</div><div class="ops-card-value">'+fleet.filter(needsCharge).length+'</div><div class="ops-card-note">at or below '+RESERVE_SOC+'% SOC</div></div></div></div>'+
     '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus charge register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual confirmation updates allocation readiness</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Charge status</th><th>Next movement</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+}
+
+function renderWashStation(){
+  var due = fleet.filter(washDue).length;
+  var active = fleet.filter(function(b){return b.washStartedAt;}).length;
+  var complete = fleet.filter(function(b){return b.washCompletedAt && !washDue(b);}).length;
+  var rows = fleet.map(function(bus){
+    var running = !!bus.washStartedAt;
+    var remaining = running ? Math.max(0, 20-Math.floor((Date.now()-bus.washStartedAt)/60000)) : 0;
+    var readyForWash = bus.chargeConfirmed && bus.parkedAfterCharge;
+    var status = running ? '<span class="pill pill-moderate">In wash - '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Wash due</span>' : '<span class="pill pill-complex">Waiting for parking</span>') : '<span class="pill pill-simple">Washed - not due</span>';
+    var action = running ? (remaining===0 ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('check')+' Confirm wash complete</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">Wash in progress</button>') : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash</button>' : '<span style="color:var(--muted);font-size:11px;">'+(readyForWash?'Not due yet':'Charge and park first')+'</span>');
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
+  }).join('');
+  return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('drop')+'Bus wash station</div><div class="ops-brief-copy">Wash buses every three days after charging and depot parking. Start the wash manually, wait for the 20-minute service window, then confirm completion so the depot can release the bus for departure.</div></div><span class="pill pill-simple">Wash operator</span></div><div class="ops-grid">'+
+    '<div class="ops-card"><div class="ops-card-label">Wash due</div><div class="ops-card-value">'+due+'</div><div class="ops-card-note">buses requiring service</div></div>'+
+    '<div class="ops-card"><div class="ops-card-label">In wash</div><div class="ops-card-value">'+active+'</div><div class="ops-card-note">20-minute service window</div></div>'+
+    '<div class="ops-card"><div class="ops-card-label">Current wash clear</div><div class="ops-card-value">'+complete+'/'+fleet.length+'</div><div class="ops-card-note">within the three-day interval</div></div></div></div>'+
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual completion updates departure readiness</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
 function renderWorkspaceContent(){
@@ -1312,6 +1333,24 @@ function bindEvents(){
     vehicleLookupMessage = washBusId+' entered wash bay. Schedule unlocks after the 20-minute wash window.';
     logEvent(washBusId+' wash started - 20 minute service window'); render();
   };
+  document.querySelectorAll('.start-wash-station').forEach(function(el){
+    el.onclick = function(){
+      var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
+      if(!bus || !bus.chargeConfirmed || !bus.parkedAfterCharge || !washDue(bus)) return;
+      bus.washStartedAt = Date.now(); bus.washCompletedAt = null; bus.departureReady = false; washBusId = bus.id;
+      logEvent(bus.id+' wash started at wash station - 20 minute service window');
+      render();
+    };
+  });
+  document.querySelectorAll('.confirm-wash-station').forEach(function(el){
+    el.onclick = function(){
+      var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
+      if(!bus || !bus.washStartedAt || Date.now()-bus.washStartedAt<20*60000) return;
+      bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = false; washBusId = bus.id;
+      logEvent(bus.id+' wash manually confirmed complete at wash station');
+      render();
+    };
+  });
   var chargeCompleteBtn = document.getElementById('chargeCompleteBtn');
   if(chargeCompleteBtn) chargeCompleteBtn.onclick = function(){
     var bus = fleet.filter(function(b){return b.id===washBusId;})[0];
