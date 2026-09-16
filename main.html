@@ -777,16 +777,18 @@ function renderWashStation(){
   var rows = fleet.map(function(bus){
     var running = !!bus.washStartedAt;
     var remaining = running ? Math.max(0, 20-Math.floor((Date.now()-bus.washStartedAt)/60000)) : 0;
+    var systemProgress = running ? Math.min(100, Math.floor((Date.now()-bus.washStartedAt)/(20*60000)*100)) : bus.washCompletedAt ? 100 : 0;
+    var washProgress = Math.max(Number(bus.washProgress)||0, systemProgress);
     var readyForWash = bus.chargeConfirmed && bus.parkedAfterCharge;
-    var status = running ? '<span class="pill pill-moderate">In wash - '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Wash due</span>' : '<span class="pill pill-complex">Waiting for parking</span>') : '<span class="pill pill-simple">Washed - not due</span>';
-    var action = running ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('check')+' Confirm wash complete</button>' : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash manually</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">'+icon('drop')+' '+(readyForWash?'Start wash manually (not due)':'Charge and park first')+'</button>');
-    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Battery charge</span><span class="station-charge-value">'+bus.soc+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+bus.soc+'%;"></div></div><div class="station-charge-entry">Manual entry: <input class="station-soc-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+bus.soc+'" aria-label="Set '+bus.id+' battery percentage" style="width:58px;">%</div></div></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
+    var status = running ? '<span class="pill pill-moderate">In wash - '+washProgress+'% &middot; '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Wash due</span>' : '<span class="pill pill-complex">Waiting for parking</span>') : '<span class="pill pill-simple">Washed - not due</span>';
+    var action = running ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" '+(washProgress<100?'disabled style="padding:6px 10px;font-size:11px;opacity:.55;cursor:not-allowed;"':'style="padding:6px 10px;font-size:11px;"')+'>'+icon('check')+' Confirm 100% complete</button>' : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash manually</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">'+icon('drop')+' '+(readyForWash?'Start wash manually (not due)':'Charge and park first')+'</button>');
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Wash completion</span><span class="station-charge-value">'+washProgress+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+washProgress+'%;"></div></div><div class="station-charge-entry">Manual entry: <input class="wash-progress-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+washProgress+'" aria-label="Set '+bus.id+' wash completion percentage" style="width:58px;">% &middot; system timer also counts to 100%</div></div></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
   }).join('');
   return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('drop')+'Bus wash station</div><div class="ops-brief-copy">Wash buses every three days after charging and depot parking. Start the wash manually, wait for the 20-minute service window, then confirm completion so the depot can release the bus for departure.</div></div><span class="pill pill-simple">Wash operator</span></div><div class="ops-grid">'+
     '<div class="ops-card"><div class="ops-card-label">Wash due</div><div class="ops-card-value">'+due+'</div><div class="ops-card-note">buses requiring service</div></div>'+
     '<div class="ops-card"><div class="ops-card-label">In wash</div><div class="ops-card-value">'+active+'</div><div class="ops-card-note">20-minute service window</div></div>'+
     '<div class="ops-card"><div class="ops-card-label">Current wash clear</div><div class="ops-card-value">'+complete+'/'+fleet.length+'</div><div class="ops-card-note">within the three-day interval</div></div></div></div>'+
-    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">battery percentage and manual wash completion</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual or system-based completion, release at 100%</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Wash completion</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
 function renderDepartureReadiness(){
@@ -1356,7 +1358,7 @@ function bindEvents(){
     washBusId = washBusId || inspectBusId || fleet[0].id;
     var washBus = fleet.filter(function(b){return b.id===washBusId;})[0];
     if(!washBus || !washBus.parkedAfterCharge){ vehicleLookupMessage = 'Confirm full charge and depot parking before sending this bus to wash.'; render(); return; }
-    washBus.washStartedAt = Date.now(); washBus.washCompletedAt = null; washBus.departureReady = false; washStartedAt = washBus.washStartedAt; washScheduledAt = washStartedAt + 20*60000;
+    washBus.washStartedAt = Date.now(); washBus.washProgress = 0; washBus.washCompletedAt = null; washBus.departureReady = false; washStartedAt = washBus.washStartedAt; washScheduledAt = washStartedAt + 20*60000;
     vehicleLookupMessage = washBusId+' entered wash bay. Schedule unlocks after the 20-minute wash window.';
     logEvent(washBusId+' wash started - 20 minute service window'); render();
   };
@@ -1364,7 +1366,7 @@ function bindEvents(){
     el.onclick = function(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
       if(!bus || !bus.chargeConfirmed || !bus.parkedAfterCharge || !washDue(bus)) return;
-      bus.washStartedAt = Date.now(); bus.washCompletedAt = null; bus.departureReady = false; washBusId = bus.id;
+      bus.washStartedAt = Date.now(); bus.washProgress = 0; bus.washCompletedAt = null; bus.departureReady = false; washBusId = bus.id;
       logEvent(bus.id+' wash started at wash station - 20 minute service window');
       render();
     };
@@ -1372,8 +1374,9 @@ function bindEvents(){
   document.querySelectorAll('.confirm-wash-station').forEach(function(el){
     el.onclick = function(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
-      if(!bus || !bus.washStartedAt || Date.now()-bus.washStartedAt<20*60000) return;
-      bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = false; washBusId = bus.id;
+      var systemProgress = bus && bus.washStartedAt ? Math.min(100, Math.floor((Date.now()-bus.washStartedAt)/(20*60000)*100)) : 0;
+      if(!bus || !bus.washStartedAt || Math.max(Number(bus.washProgress)||0, systemProgress)<100) return;
+      bus.washProgress = 100; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = false; washBusId = bus.id;
       logEvent(bus.id+' wash manually confirmed complete at wash station');
       render();
     };
@@ -1401,6 +1404,14 @@ function bindEvents(){
     el.onchange = function(){
       var value = Math.max(0, Math.min(100, Number(el.value)||0));
       updateBus(el.getAttribute('data-bus'), 'soc', value);
+    };
+  });
+  document.querySelectorAll('.wash-progress-in').forEach(function(el){
+    el.onchange = function(){
+      var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
+      if(!bus) return;
+      bus.washProgress = Math.max(0, Math.min(100, Number(el.value)||0));
+      render();
     };
   });
   var parkBusBtn = document.getElementById('parkBusBtn');
