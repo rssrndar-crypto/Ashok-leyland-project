@@ -1376,7 +1376,7 @@ function bindEvents(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
       var systemProgress = bus && bus.washStartedAt ? Math.min(100, Math.floor((Date.now()-bus.washStartedAt)/(20*60000)*100)) : 0;
       if(!bus || !bus.washStartedAt || Math.max(Number(bus.washProgress)||0, systemProgress)<100) return;
-      bus.washProgress = 100; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = false; washBusId = bus.id;
+      bus.washProgress = 100; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = true; washBusId = bus.id;
       logEvent(bus.id+' wash manually confirmed complete at wash station');
       render();
     };
@@ -1385,18 +1385,18 @@ function bindEvents(){
   if(chargeCompleteBtn) chargeCompleteBtn.onclick = function(){
     var bus = fleet.filter(function(b){return b.id===washBusId;})[0];
     if(!bus) return;
-    bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = false; bus.washCompletedAt = null; bus.departureReady = false; chargeCompletedAt = Date.now();
-    vehicleLookupMessage = bus.id+' is fully charged. Manually notify depot parking before washing.';
+    bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = true; bus.washCompletedAt = null; bus.departureReady = false; chargeCompletedAt = Date.now();
+    vehicleLookupMessage = bus.id+' is fully charged and available in the depot for wash processing.';
     logEvent(bus.id+' charge completed - ready for clean service'); render();
   };
   document.querySelectorAll('.confirm-charge-station').forEach(function(el){
     el.onclick = function(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
       if(!bus) return;
-      bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = false; bus.washCompletedAt = null; bus.departureReady = false;
+      bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = true; bus.washCompletedAt = null; bus.departureReady = false;
       washBusId = bus.id;
       logEvent(bus.id+' full charge manually confirmed at charging station');
-      vehicleLookupMessage = bus.id+' is fully charged. Move it to depot parking.';
+      vehicleLookupMessage = bus.id+' is fully charged and available in the depot for wash processing.';
       render();
     };
   });
