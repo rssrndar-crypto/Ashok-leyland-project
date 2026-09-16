@@ -345,8 +345,8 @@ var AUTH_USERS = [
   {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup']},
   {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup']},
-  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']},
-  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['washing']}
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['overview','schedule','charging']},
+  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['overview','schedule','washing']}
 ];
 var LOGIN_MODES = [
   {id:'control', label:'Control room', detail:'Schedules, fleet and approvals', icon:'gauge', roles:['Depot Operations','Depot Manager','City Manager']},
@@ -736,8 +736,9 @@ function signOut(){
 function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
-  if(signedInUser.role==='Charging Station') workspaceTab = 'charging';
-  if(signedInUser.role==='Bus Wash') workspaceTab = 'washing';
+  var serviceView = signedInUser.role==='Charging Station' && workspaceTab==='charging' ? renderChargingStation() : signedInUser.role==='Bus Wash' && workspaceTab==='washing' ? renderWashStation() : renderCockpit() + renderWorkspaceContent();
+  app.innerHTML = renderHeader() + renderWorkspaceNav() + serviceView;
+    workspaceTab = user.role==='Charging Station' ? 'charging' : user.role==='Bus Wash' ? 'washing' : 'overview';
   if(!canAccessTab(workspaceTab)) workspaceTab = 'overview';
   app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : signedInUser.role==='Bus Wash' ? renderWashStation() : renderCockpit() + renderWorkspaceContent());
   bindEvents();
@@ -1405,7 +1406,7 @@ function bindEvents(){
   var parkBusBtn = document.getElementById('parkBusBtn');
   if(parkBusBtn) parkBusBtn.onclick = function(){ var bus = fleet.filter(function(b){return b.id===washBusId;})[0]; if(!bus || !bus.chargeConfirmed) return; bus.parkedAfterCharge = true; vehicleLookupMessage = bus.id+' manually confirmed parked at the depot. Wash is now available when due.'; logEvent(bus.id+' manually confirmed parked after full charge'); render(); };
   var washCompleteBtn = document.getElementById('washCompleteBtn');
-  if(washCompleteBtn) washCompleteBtn.onclick = function(){ var bus = fleet.filter(function(b){return b.id===washBusId;})[0]; if(!bus || !bus.washStartedAt) return; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; washStartedAt = null; washScheduledAt = null; vehicleLookupMessage = bus.id+' wash manually confirmed complete. Notify departure readiness after the bus returns to the depot lane.'; logEvent(bus.id+' wash complete - awaiting manual departure release'); render(); };
+  if(washCompleteBtn) washCompleteBtn.onclick = function(){ var bus = fleet.filter(function(b){return b.id===washBusId;})[0]; if(!bus || !bus.washStartedAt) return; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = true; washStartedAt = null; washScheduledAt = null; workspaceTab = 'schedule'; cockpitPage = 'dashboard'; vehicleLookupMessage = bus.id+' is charged, washed, and ready for route allocation. Select a route and run allocation.'; logEvent(bus.id+' wash complete - released to schedule allocation'); render(); };
   var departureReadyBtn = document.getElementById('departureReadyBtn');
   if(departureReadyBtn) departureReadyBtn.onclick = function(){ var bus = fleet.filter(function(b){return b.id===washBusId;})[0]; if(!bus || !bus.washCompletedAt || washDue(bus)) return; bus.departureReady = true; vehicleLookupMessage = bus.id+' manually notified ready for departure. The ordered allocation can now assign a driver.'; logEvent(bus.id+' manually released as ready for departure'); render(); };
   var oneClickSchedule = document.getElementById('oneClickSchedule');
