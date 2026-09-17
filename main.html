@@ -314,29 +314,29 @@ var ICONS = {
 function icon(name){ return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>'; }
 
 var routes = [
-  {id:'r1',code:'DEP-A', name:'Depot loop - North sector',          reqRange:104.2, schedules:4},
-  {id:'r2',code:'DEP-B', name:'Depot loop - Market sector',         reqRange:114.5, schedules:38},
-  {id:'r3',code:'CITY-C',name:'City connector - East sector',       reqRange:115.9, schedules:21},
-  {id:'r4',code:'CITY-D',name:'City connector - South sector',      reqRange:119.7, schedules:10},
-  {id:'r5',code:'CITY-E',name:'City connector - West sector',        reqRange:122.9, schedules:17},
-  {id:'r6',code:'CITY-F',name:'City connector - North sector',       reqRange:128.9, schedules:9},
-  {id:'r7',code:'CITY-G',name:'Regional service - East gate',        reqRange:129.3, schedules:20},
-  {id:'r8',code:'CITY-H',name:'Regional service - South gate',       reqRange:129.7, schedules:6},
-  {id:'r9',code:'CITY-I',name:'Regional service - West gate',        reqRange:138.4, schedules:4}
+  {id:'r1',code:'500DC', name:'Hebbala Bridge - Chandapura',       reqRange:104.2, schedules:4},
+  {id:'r2',code:'600F',  name:'Banashankari TTMC - Attibele',      reqRange:114.5, schedules:38},
+  {id:'r3',code:'KBS3A', name:'Kempegowda Bus Stn - Attibele',    reqRange:115.9, schedules:21},
+  {id:'r4',code:'KBS3F', name:'Kempegowda Bus Stn - Attibele (F)', reqRange:119.7, schedules:10},
+  {id:'r5',code:'360K',  name:'Kempegowda Bus Stn - Attibele',    reqRange:122.9, schedules:17},
+  {id:'r6',code:'361C',  name:'(route name not in your slides)',   reqRange:128.9, schedules:9},
+  {id:'r7',code:'328H',  name:'Attibele - Hosakote Bus Stand',    reqRange:129.3, schedules:20},
+  {id:'r8',code:'356Z',  name:'Anekal - Chandapura',              reqRange:129.7, schedules:6},
+  {id:'r9',code:'399C',  name:'(route name not in your slides)',   reqRange:138.4, schedules:4}
 ];
 routes.forEach(function(r){ r.category = routeCategory(r.reqRange); });
 
-function plateFor(id){ return 'AL-DEP-'+id.replace(/[^0-9]/g,''); }
+function plateFor(id){ return id; }
 function makeFleet(){
   var raw = [
-    ['AL101',95,true,true,true,true,false,3200,97], ['AL102',90,true,true,true,true,false,7800,94], ['AL103',88,true,false,true,true,false,9600,91],
-    ['AL104',99,true,true,true,true,false,1200,99], ['AL105',70,true,true,true,true,false,6100,88], ['AL106',68,true,true,true,true,false,10400,95],
-    ['AL107',80,false,true,true,true,false,4300,92],['AL108',91,true,true,true,true,true,8900,90], ['AL109',45,true,true,true,true,false,2100,96],
-    ['AL110',75,true,true,true,true,false,5500,93], ['AL111',35,true,true,true,true,false,9100,85], ['AL112',97,true,true,true,true,false,600,98],
-    ['AL113',72,true,true,true,true,false,7200,94], ['AL114',25,true,true,true,true,false,3800,89], ['AL115',60,true,true,true,true,false,10800,91],
-    ['AL116',85,false,false,true,true,false,5900,87],['AL117',93,true,true,true,true,false,2700,96],['AL118',50,true,true,false,true,false,8300,93],
-    ['AL119',67,true,true,true,true,false,4600,90], ['AL120',99,true,true,true,true,false,1800,99],['AL121',40,true,true,false,true,false,6700,86],
-    ['AL122',74,true,true,true,false,false,9400,92], ['AL123',20,true,true,true,true,false,3300,83], ['AL124',85,true,true,true,true,false,7500,95]
+    ['BM248',95,true,true,true,true,false,3200,97], ['BM278',90,true,true,true,true,false,7800,94], ['BM200',88,true,false,true,true,false,9600,91],
+    ['BM201',99,true,true,true,true,false,1200,99], ['BM294',70,true,true,true,true,false,6100,88], ['BM299',68,true,true,true,true,false,10400,95],
+    ['BM223',80,false,true,true,true,false,4300,92],['BM153',91,true,true,true,true,true,8900,90], ['BM281',45,true,true,true,true,false,2100,96],
+    ['BM216',75,true,true,true,true,false,5500,93], ['BM183',35,true,true,true,true,false,9100,85], ['BM068',97,true,true,true,true,false,600,98],
+    ['BM215',72,true,true,true,true,false,7200,94], ['BM054',25,true,true,true,true,false,3800,89], ['BM207',60,true,true,true,true,false,10800,91],
+    ['BM255',85,false,false,true,true,false,5900,87],['BM086',93,true,true,true,true,false,2700,96],['BM273',50,true,true,false,true,false,8300,93],
+    ['BM268',67,true,true,true,true,false,4600,90], ['BM285',99,true,true,true,true,false,1800,99],['BM082',40,true,true,false,true,false,6700,86],
+    ['BM224',74,true,true,true,false,false,9400,92],['BM289',20,true,true,true,true,false,3300,83], ['BM274',85,true,true,true,true,false,7500,95]
   ];
   return raw.map(function(r){
     var initiallyReady = r[1]>=98 && r[2] && r[3] && r[4] && r[5] && !r[6];
@@ -374,10 +374,10 @@ var HIGH_SEV_ITEMS = ['Windshield Front','Windshield Rear','Head Lamp','Tail Lam
   'Driver Cabin','Front Windshield','Rear Windshield','Emergency Window','Window Glass','LED Destination Board','Metal Handle & Hand Holder'];
 function defectSeverity(item){ return HIGH_SEV_ITEMS.indexOf(item)!==-1 ? 'High' : 'Medium'; }
 var SEED_DEFECTS = [
-  {busId:'AL103', area:'Exterior', item:'Rear LH'},
-  {busId:'AL107', area:'Interior', item:'Dashboard'},
-  {busId:'AL116', area:'Exterior', item:'Head Lamp'},
-  {busId:'AL116', area:'Interior', item:'A/C Duct'}
+  {busId:'BM200', area:'Exterior', item:'Rear LH'},
+  {busId:'BM223', area:'Interior', item:'Dashboard'},
+  {busId:'BM255', area:'Exterior', item:'Head Lamp'},
+  {busId:'BM255', area:'Interior', item:'A/C Duct'}
 ];
 function padN(n,len){ n=''+n; while(n.length<len) n='0'+n; return n; }
 var defectLog = [];
