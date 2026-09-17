@@ -351,8 +351,8 @@ var AUTH_USERS = [
   {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['schedule']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['schedule']},
   {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['schedule']},
-  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['schedule']},
-  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['schedule']}
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']},
+  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['washing']}
 ];
 var LOGIN_MODES = [
   {id:'control', label:'Control room', detail:'Schedules, fleet and approvals', icon:'gauge', roles:['Depot Operations','Depot Manager','City Manager']},
@@ -753,7 +753,19 @@ function signOut(){
 function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
-  if(!canAccessTab(workspaceTab)) workspaceTab = 'allocation';
+  if(signedInUser.role==='Charging Station'){
+    workspaceTab = 'charging';
+    app.innerHTML = renderHeader() + renderChargingStation();
+    bindEvents();
+    return;
+  }
+  if(signedInUser.role==='Bus Wash'){
+    workspaceTab = 'washing';
+    app.innerHTML = renderHeader() + renderWashStation();
+    bindEvents();
+    return;
+  }
+  if(!canAccessTab(workspaceTab)) workspaceTab = 'schedule';
   app.innerHTML = renderHeader() + renderWorkspaceNav() + renderCockpit() + renderWorkspaceContent();
   bindEvents();
 }
