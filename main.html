@@ -846,16 +846,6 @@ function renderAllocationScreen(){
     var bucket = rangeCategory(effectiveRange(bus));
     byCategory[bucket].push(bus);
   });
-  var timeRows = TIME_SLOTS.map(function(slot){
-    var result = computeAllocationFor(slot.cat);
-    var assigned = result.assignments.map(function(a){
-      var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
-      var bucket = bus ? rangeCategory(effectiveRange(bus)) : 'A';
-      return '<div style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;margin-top:6px;">'+a.route.code+' &middot; '+a.busId+' &middot; <span class="pill pill-'+(bucket==='A'?'simple':bucket==='B'?'moderate':'complex')+'">'+bucket+'</span></div>';
-    }).join('');
-    if(!assigned) assigned = '<div style="color:var(--muted);font-size:11px;">No bus assigned</div>';
-    return '<div class="panel" style="padding:12px;margin-top:10px;"><div class="panel-head"><span>'+slot.label+'</span><span style="color:var(--muted);font-weight:400;font-size:11px;">'+slot.cat+'</span></div><div style="padding:10px 0;">'+assigned+'</div></div>';
-  }).join('');
   return '<div class="section" style="margin-top:18px;">' +
     '<div class="ops-brief" style="padding:16px 18px;">' +
       '<div class="ops-brief-head" style="margin-bottom:10px;">' +
@@ -867,10 +857,6 @@ function renderAllocationScreen(){
         '<div class="ops-card"><div class="ops-card-label">B buses</div><div class="ops-card-value">'+byCategory.B.length+'</div><div class="ops-card-note">medium range / suitable for moderate routes</div></div>' +
         '<div class="ops-card"><div class="ops-card-label">C buses</div><div class="ops-card-value">'+byCategory.C.length+'</div><div class="ops-card-note">shorter range / limited to simple routes</div></div>' +
       '</div>' +
-    '</div>' +
-    '<div class="panel" style="margin-top:16px;">' +
-      '<div class="panel-head"><span>Route allocation by time</span><span style="color:var(--muted);font-weight:400;font-size:11px;">bus fitness and route demand</span></div>' +
-      '<div style="padding:12px 14px;">'+timeRows+'</div>' +
     '</div>' +
   '</div>';
 }
