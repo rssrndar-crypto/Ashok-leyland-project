@@ -346,8 +346,8 @@ var AUTH_USERS = [
   {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['schedule','allocation']},
   {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['schedule','allocation']},
   {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['schedule','allocation']},
-  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']},
-  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['washing']}
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['schedule','allocation']},
+  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['schedule','allocation']}
 ];
 var LOGIN_MODES = [
   {id:'control', label:'Control room', detail:'Schedules, fleet and approvals', icon:'gauge', roles:['Depot Operations','Depot Manager','City Manager']},
@@ -464,7 +464,7 @@ var result = null;
 var daySummary = null;
 var decisionReviewAt = null;
 var cockpitPage = 'dashboard';
-var workspaceTab = 'overview';
+var workspaceTab = 'allocation';
 var depotNo = 'DEP-CHP-01';
 var depotManager = 'Depot Manager';
 var cityManager = 'City Manager';
@@ -747,10 +747,8 @@ function signOut(){
 function render(){
   var app = document.getElementById('app');
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
-  if(signedInUser.role==='Charging Station') workspaceTab = 'charging';
-  if(signedInUser.role==='Bus Wash') workspaceTab = 'washing';
   if(!canAccessTab(workspaceTab)) workspaceTab = 'allocation';
-  app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : signedInUser.role==='Bus Wash' ? renderWashStation() : renderCockpit() + renderWorkspaceContent());
+  app.innerHTML = renderHeader() + renderWorkspaceNav() + renderCockpit() + renderWorkspaceContent();
   bindEvents();
 }
 
@@ -908,10 +906,7 @@ function renderSimpleScheduleAssignment(){
 function renderWorkspaceContent(){
   if(workspaceTab==='allocation') return renderAllocationScreen();
   if(workspaceTab==='schedule') return renderSlotsSection()+renderSimpleScheduleAssignment();
-  if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
-  if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
-  if(workspaceTab==='setup') return renderDepotSetup();
-  return renderOpsBrief()+renderActionCenter()+renderKpis()+renderDepartureReadiness();
+  return renderAllocationScreen();
 }
 
 function renderFleetReadiness(){
