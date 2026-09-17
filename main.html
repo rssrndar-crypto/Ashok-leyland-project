@@ -884,6 +884,14 @@ function renderSimpleScheduleAssignment(){
       return isAvailableNow(bus) && allowedBusCats.indexOf(rangeCategory(effectiveRange(bus)))!==-1 && canServeRoute(bus, route);
     });
     var busOptions = readyBuses.length ? readyBuses : fleet.filter(isAvailableNow);
+    var routeFitBuses = fleet.filter(function(bus){
+      return allowedBusCats.indexOf(rangeCategory(effectiveRange(bus)))!==-1 && canServeRoute(bus, route);
+    });
+    var fitnessSummary = ['A','B','C'].filter(function(category){return allowedBusCats.indexOf(category)!==-1;}).map(function(category){
+      var categoryBuses = routeFitBuses.filter(function(bus){return rangeCategory(effectiveRange(bus))===category;});
+      var names = categoryBuses.length ? categoryBuses.map(function(bus){return bus.id+(isAvailableNow(bus)?'':' (check)');}).join(', ') : 'None';
+      return '<div><span class="pill '+pillClass(category)+'">'+category+'</span> <span style="font-size:10.5px;color:var(--muted);">'+names+'</span></div>';
+    }).join('');
     var busHtml = busOptions.map(function(bus){
       return '<option value="'+bus.id+'"'+(bus.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).busId||'')?' selected':'')+'>'+bus.id+' &middot; '+rangeCategory(effectiveRange(bus))+' &middot; '+bus.soc+'%</option>';
     }).join('');
@@ -898,10 +906,11 @@ function renderSimpleScheduleAssignment(){
       var checks = stationChecks(bus);
       return '<span class="pill '+(checks.charge?'pill-simple':'pill-complex')+'">Charge '+(checks.charge?'YES':'NO')+'</span> <span class="pill '+(checks.wash?'pill-simple':'pill-complex')+'">Wash '+(checks.wash?'YES':'NO')+'</span> <span class="pill '+(checks.ready?'pill-simple':'pill-moderate')+'">'+(checks.ready?'READY':'CHECK '+((checks.charge?1:0)+(checks.wash?1:0))+' OF 2')+'</span>';
     }).join('<br>') : '<span class="pill pill-complex">No bus available in depot</span>';
-    return '<div class="assign-row" style="display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr 1.45fr;align-items:center;gap:10px;padding:10px 12px;">' +
+    return '<div class="assign-row" style="display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr 1.35fr 1.45fr;align-items:center;gap:10px;padding:10px 12px;">' +
       '<div><div style="font-size:12px;font-weight:700;">'+route.code+'</div><div style="font-size:11px;color:var(--muted);">'+route.name+' &middot; '+route.category+'</div></div>' +
       '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Bus</div><select class="reassign-bus-sel" data-route="'+route.id+'" style="width:100%;">'+busHtml+'</select></div>' +
       '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Driver</div><select class="reassign-drv-sel" data-route="'+route.id+'" style="width:100%;">'+drvOptions+'</select></div>' +
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Route-fit buses</div><div style="font-size:11px;line-height:1.8;">'+fitnessSummary+'</div></div>' +
       '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Charge / wash check</div><div style="font-size:11px;line-height:1.8;">'+checkSummary+'</div></div>' +
     '</div>';
   }).join('');
