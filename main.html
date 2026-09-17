@@ -249,8 +249,13 @@ function effectiveRange(b){ return Math.min(busRange(b), expectedRange(b)); }
 function hasTrend(b){ return b.socHistory && b.socHistory.length>=3; }
 function canServeRoute(bus, route){ return effectiveRange(bus) >= route.reqRange; }
 function washDue(b){ return !b.lastWashAt || Date.now()-b.lastWashAt >= WASH_INTERVAL_DAYS*24*60*60*1000; }
-function workflowReady(b){ return b.chargeConfirmed && b.parkedAfterCharge && b.washCompletedAt && !washDue(b) && b.departureReady; }
-function isEligible(b){ return !b.maintenance && b.interiorClean && b.exteriorClean && b.oilCheck && b.engineCheck && !needsCharge(b) && workflowReady(b); }
+function stationChecks(b){
+  var charge = !!b.chargeConfirmed && b.soc>=98;
+  var wash = !!b.washCompletedAt && !washDue(b);
+  return {charge:charge, wash:wash, ready:charge&&wash, eligible:charge||wash};
+}
+function workflowReady(b){ return stationChecks(b).eligible; }
+function isEligible(b){ return !b.maintenance && b.interiorClean && b.exteriorClean && b.oilCheck && b.engineCheck && workflowReady(b); }
 function matchScore(bus, route){
   var margin = effectiveRange(bus)-route.reqRange;
   var score = Math.max(0, Math.min(40, margin/route.reqRange*40));
@@ -888,10 +893,15 @@ function renderSimpleScheduleAssignment(){
       return '<option value="'+d.id+'"'+(d.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).driverId||'')?' selected':'')+'>'+d.id+' &middot; '+d.grade+'</option>';
     }).join('');
     if(!drvOptions){ drvOptions = '<option value="">No driver available</option>'; }
-    return '<div class="assign-row" style="display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr;align-items:center;gap:10px;padding:10px 12px;">' +
+    var checkSummary = busOptions.length ? busOptions.map(function(bus){
+      var checks = stationChecks(bus);
+      return '<span class="pill '+(checks.charge?'pill-simple':'pill-complex')+'">Charge '+(checks.charge?'YES':'NO')+'</span> <span class="pill '+(checks.wash?'pill-simple':'pill-complex')+'">Wash '+(checks.wash?'YES':'NO')+'</span> <span class="pill '+(checks.ready?'pill-simple':'pill-moderate')+'">'+(checks.ready?'READY':'CHECK '+((checks.charge?1:0)+(checks.wash?1:0))+' OF 2')+'</span>';
+    }).join('<br>') : '<span class="pill pill-complex">No bus available in depot</span>';
+    return '<div class="assign-row" style="display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr 1.45fr;align-items:center;gap:10px;padding:10px 12px;">' +
       '<div><div style="font-size:12px;font-weight:700;">'+route.code+'</div><div style="font-size:11px;color:var(--muted);">'+route.name+' &middot; '+route.category+'</div></div>' +
       '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Bus</div><select class="reassign-bus-sel" data-route="'+route.id+'" style="width:100%;">'+busHtml+'</select></div>' +
       '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Driver</div><select class="reassign-drv-sel" data-route="'+route.id+'" style="width:100%;">'+drvOptions+'</select></div>' +
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Charge / wash check</div><div style="font-size:11px;line-height:1.8;">'+checkSummary+'</div></div>' +
     '</div>';
   }).join('');
 
