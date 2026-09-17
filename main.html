@@ -898,19 +898,8 @@ function renderSimpleScheduleAssignment(){
   }).join('');
 
   return '<div class="section" style="margin-top:18px;">' +
-    '<div class="ops-brief" style="padding:16px 18px;">' +
-      '<div class="ops-brief-head" style="margin-bottom:10px;">' +
-        '<div><div class="ops-brief-title">'+icon('spark')+'Route assignment</div><div class="ops-brief-copy">Select the bus and driver for each route during the chosen time slot. The list only shows buses that fit the route and time category.</div></div>' +
-        '<span class="pill pill-simple">'+slot.label+' &middot; '+slot.cat+'</span>' +
-      '</div>' +
-      '<div class="ops-grid" style="grid-template-columns:repeat(3,minmax(120px,1fr));">' +
-        '<div class="ops-card"><div class="ops-card-label">Available buses</div><div class="ops-card-value">'+fleet.filter(isAvailableNow).length+'</div><div class="ops-card-note">in depot now</div></div>' +
-        '<div class="ops-card"><div class="ops-card-label">Ready drivers</div><div class="ops-card-value">'+drivers.filter(function(d){ return d.status==='Available'; }).length+'</div><div class="ops-card-note">qualified staff</div></div>' +
-        '<div class="ops-card"><div class="ops-card-label">Route count</div><div class="ops-card-value">'+routes.length+'</div><div class="ops-card-note">in this schedule</div></div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="panel" style="margin-top:16px;">' +
-      '<div class="panel-head"><span>Bus and driver selection</span><span style="color:var(--muted);font-weight:400;font-size:11px;">choose route-wise assignment</span></div>' +
+    '<div class="panel" style="margin-top:0;">' +
+      '<div class="panel-head"><span>'+slot.label+' &middot; '+slot.cat+'</span><span style="color:var(--muted);font-weight:400;font-size:11px;">Route assignment</span></div>' +
       '<div style="padding:10px 12px;">'+routeRows+'</div>' +
     '</div>' +
   '</div>';
