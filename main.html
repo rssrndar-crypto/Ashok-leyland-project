@@ -345,14 +345,14 @@ function makeFleet(){
 }
 var fleet = makeFleet();
 var AUTH_USERS = [
-  {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['schedule','allocation']},
-  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['schedule','allocation']},
-  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['schedule','allocation']},
-  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['schedule','allocation']},
-  {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['schedule','allocation']},
-  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['schedule','allocation']},
-  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['schedule','allocation']},
-  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['schedule','allocation']}
+  {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['schedule']},
+  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['schedule']},
+  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['schedule']},
+  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['schedule']},
+  {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['schedule']},
+  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['schedule']},
+  {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['schedule']},
+  {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['schedule']}
 ];
 var LOGIN_MODES = [
   {id:'control', label:'Control room', detail:'Schedules, fleet and approvals', icon:'gauge', roles:['Depot Operations','Depot Manager','City Manager']},
@@ -469,7 +469,7 @@ var result = null;
 var daySummary = null;
 var decisionReviewAt = null;
 var cockpitPage = 'dashboard';
-var workspaceTab = 'allocation';
+var workspaceTab = 'schedule';
 var depotNo = 'DEP-CHP-01';
 var depotManager = 'Depot Manager';
 var cityManager = 'City Manager';
@@ -764,7 +764,7 @@ function canEditDepot(){ return !!signedInUser; }
 function canVerifyCity(){ return !!signedInUser; }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'schedule',label:'Schedule'},{id:'allocation',label:'Allocation'}];
+  var tabs = [{id:'schedule',label:'Schedule'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.filter(function(tab){return canAccessTab(tab.id);}).map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
@@ -924,8 +924,7 @@ function renderSimpleScheduleAssignment(){
 }
 
 function renderWorkspaceContent(){
-  if(workspaceTab==='allocation') return renderAllocationScreen();
-  if(workspaceTab==='schedule') return renderSlotsSection()+renderPlanningSection()+renderChartAndRun()+renderResult()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderSimpleScheduleAssignment()+renderTripMonitor();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderAllocationScreen()+renderPlanningSection()+renderChartAndRun()+renderResult()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderSimpleScheduleAssignment()+renderTripMonitor();
   return renderAllocationScreen();
 }
 
