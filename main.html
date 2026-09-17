@@ -344,6 +344,21 @@ function makeFleet(){
   });
 }
 var fleet = makeFleet();
+var FLEET_STATE_KEY = 'ashok-leyland-fleet-state';
+function saveFleetState(){
+  try{ localStorage.setItem(FLEET_STATE_KEY, JSON.stringify(fleet)); }catch(error){}
+}
+function restoreFleetState(){
+  try{
+    var saved = JSON.parse(localStorage.getItem(FLEET_STATE_KEY)||'null');
+    if(!Array.isArray(saved)) return;
+    saved.forEach(function(savedBus){
+      var bus = fleet.filter(function(item){return item.id===savedBus.id;})[0];
+      if(!bus) return;
+      Object.keys(savedBus).forEach(function(key){ bus[key] = savedBus[key]; });
+    });
+  }catch(error){}
+}
 var AUTH_USERS = [
   {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['schedule']},
   {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['schedule']},
@@ -752,6 +767,7 @@ function signOut(){
 
 function render(){
   var app = document.getElementById('app');
+  saveFleetState();
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
   if(signedInUser.role==='Charging Station'){
     workspaceTab = 'charging';
@@ -1590,7 +1606,7 @@ function bindEvents(){
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); drivers = makeDrivers(); result = null; daySummary = null; decisionReviewAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); saveFleetState(); drivers = makeDrivers(); result = null; daySummary = null; decisionReviewAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ decisionReviewAt = new Date(); logEvent('Decision review refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
   var decisionDispatchBtn = document.getElementById('decisionDispatchBtn');
@@ -1738,6 +1754,7 @@ function bindEvents(){
 function updateBus(id, field, value){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = value; if(field==='soc' && value<98){ b.chargeConfirmed=false; b.parkedAfterCharge=false; b.washCompletedAt=null; b.departureReady=false; } render(); }
 function toggleBus(id, field){ var b = fleet.filter(function(b){return b.id===id;})[0]; b[field] = !b[field]; render(); }
 
+restoreFleetState();
 restoreSession();
 render();
 </script>
