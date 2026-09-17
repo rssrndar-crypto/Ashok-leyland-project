@@ -769,15 +769,26 @@ function renderChargingStation(){
   var charging = fleet.filter(function(b){return !b.chargeConfirmed || b.soc<98;}).length;
   var rows = fleet.map(function(bus){
     var full = bus.chargeConfirmed && bus.soc>=98;
-    var status = full ? '<span class="pill pill-simple">Full charge confirmed</span>' : bus.soc<=RESERVE_SOC ? '<span class="pill pill-complex">Needs charging</span>' : '<span class="pill pill-moderate">Charging required</span>';
-    var action = '<button class="btn-primary confirm-charge-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('battery')+' '+(full?'Reconfirm 100%':'Confirm 100%')+'</button>';
-    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Battery charge</span><span class="station-charge-value">'+bus.soc+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+bus.soc+'%;"></div></div><div class="station-charge-entry">Manual entry: <input class="station-soc-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+bus.soc+'" aria-label="Set '+bus.id+' battery percentage" style="width:58px;">%</div></div></td><td>'+status+'</td><td>'+(bus.parkedAfterCharge?'Parked at depot':'Awaiting depot parking')+'</td><td>'+action+'</td></tr>';
+    var status = full ? '<span class="pill pill-simple">Ready</span>' : bus.soc<=RESERVE_SOC ? '<span class="pill pill-complex">Low</span>' : '<span class="pill pill-moderate">Charge</span>';
+    var action = '<button class="btn-primary confirm-charge-station" type="button" data-bus="'+bus.id+'" style="padding:6px 10px;font-size:11px;">'+icon('battery')+' '+(full?'Reconfirm':'Confirm')+'</button>';
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Battery</span><span class="station-charge-value">'+bus.soc+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+bus.soc+'%;"></div></div><div class="station-charge-entry">Manual: <input class="station-soc-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+bus.soc+'" aria-label="Set '+bus.id+' battery percentage" style="width:56px;">%</div></div></td><td>'+status+'</td><td>'+action+'</td></tr>';
   }).join('');
-  return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('battery')+'Charging station control</div><div class="ops-brief-copy">Review each bus charge level and manually confirm when the battery reaches 100%. Confirmed buses then move to depot parking before washing and departure release.</div></div><span class="pill pill-simple">Station operator</span></div><div class="ops-grid">'+
-    '<div class="ops-card"><div class="ops-card-label">Fleet at full charge</div><div class="ops-card-value">'+charged+'/'+fleet.length+'</div><div class="ops-card-note">manually confirmed at 98-100%</div></div>'+
-    '<div class="ops-card"><div class="ops-card-label">Charging queue</div><div class="ops-card-value">'+charging+'</div><div class="ops-card-note">requires charging confirmation</div></div>'+
-    '<div class="ops-card"><div class="ops-card-label">Reserve alerts</div><div class="ops-card-value">'+fleet.filter(needsCharge).length+'</div><div class="ops-card-note">at or below '+RESERVE_SOC+'% SOC</div></div></div></div>'+
-    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus charge register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">set the actual percentage, then manually confirm 100%</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Charge status</th><th>Next movement</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+  return '<div class="section" style="margin-top:18px;">'+
+    '<div class="ops-brief" style="padding:16px 18px;">'+
+      '<div class="ops-brief-head" style="margin-bottom:10px;">'+
+        '<div><div class="ops-brief-title">'+icon('battery')+'Charging station</div><div class="ops-brief-copy">Enter the bus battery level and confirm when the charge is complete.</div></div>'+
+        '<span class="pill pill-simple">Charge operator</span>'+
+      '</div>'+
+      '<div class="ops-grid" style="grid-template-columns:repeat(2,minmax(155px,1fr));">'+
+        '<div class="ops-card"><div class="ops-card-label">Ready</div><div class="ops-card-value">'+charged+'</div><div class="ops-card-note">full charge confirmed</div></div>'+
+        '<div class="ops-card"><div class="ops-card-label">Need charge</div><div class="ops-card-value">'+charging+'</div><div class="ops-card-note">waiting for charging</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="panel" style="margin-top:16px;">'+
+      '<div class="panel-head"><span>Charge dashboard</span><span style="color:var(--muted);font-weight:400;font-size:11px;">enter battery, then confirm 100%</span></div>'+
+      '<div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '</div>'+
+  '</div>';
 }
 
 function renderWashStation(){
@@ -790,15 +801,27 @@ function renderWashStation(){
     var systemProgress = running ? Math.min(100, Math.floor((Date.now()-bus.washStartedAt)/(20*60000)*100)) : bus.washCompletedAt ? 100 : 0;
     var washProgress = Math.max(Number(bus.washProgress)||0, systemProgress);
     var readyForWash = bus.chargeConfirmed && bus.parkedAfterCharge;
-    var status = running ? '<span class="pill pill-moderate">In wash - '+washProgress+'% &middot; '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Wash due</span>' : '<span class="pill pill-complex">Waiting for parking</span>') : '<span class="pill pill-simple">Washed - not due</span>';
-    var action = running ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" '+(washProgress<100?'disabled style="padding:6px 10px;font-size:11px;opacity:.55;cursor:not-allowed;"':'style="padding:6px 10px;font-size:11px;"')+'>'+icon('check')+' Confirm 100% complete</button>' : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start wash manually</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">'+icon('drop')+' '+(readyForWash?'Start wash manually (not due)':'Charge and park first')+'</button>');
-    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Wash completion</span><span class="station-charge-value">'+washProgress+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+washProgress+'%;"></div></div><div class="station-charge-entry">Manual entry: <input class="wash-progress-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+washProgress+'" aria-label="Set '+bus.id+' wash completion percentage" style="width:58px;">% &middot; system timer also counts to 100%</div></div></td><td>'+status+'</td><td>'+(bus.lastWashAt ? new Date(bus.lastWashAt).toLocaleDateString() : 'Never')+'</td><td>'+(bus.departureReady?'Ready for departure':bus.washCompletedAt?'Awaiting release':'Hold')+'</td><td>'+action+'</td></tr>';
+    var status = running ? '<span class="pill pill-moderate">Washing - '+remaining+' min</span>' : washDue(bus) ? (readyForWash ? '<span class="pill pill-complex">Due</span>' : '<span class="pill pill-complex">Wait</span>') : '<span class="pill pill-simple">Clean</span>';
+    var action = running ? '<button class="btn-primary confirm-wash-station" type="button" data-bus="'+bus.id+'" '+(washProgress<100?'disabled style="padding:6px 10px;font-size:11px;opacity:.55;cursor:not-allowed;"':'style="padding:6px 10px;font-size:11px;"')+'>'+icon('check')+' Done</button>' : (washDue(bus) && readyForWash ? '<button class="btn-secondary start-wash-station" type="button" data-bus="'+bus.id+'">'+icon('drop')+' Start</button>' : '<button class="btn" type="button" disabled style="opacity:.55;cursor:not-allowed;">'+icon('drop')+' Hold</button>');
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><div class="station-charge"><div class="station-charge-head"><span>Wash</span><span class="station-charge-value">'+washProgress+'%</span></div><div class="station-charge-track"><div class="station-charge-fill" style="width:'+washProgress+'%;"></div></div><div class="station-charge-entry">Manual: <input class="wash-progress-in" type="number" min="0" max="100" data-bus="'+bus.id+'" value="'+washProgress+'" aria-label="Set '+bus.id+' wash completion percentage" style="width:56px;">%</div></div></td><td>'+status+'</td><td>'+action+'</td></tr>';
   }).join('');
-  return '<div class="section" style="margin-top:18px;"><div class="ops-brief"><div class="ops-brief-head"><div><div class="ops-brief-title">'+icon('drop')+'Bus wash station</div><div class="ops-brief-copy">Wash buses every three days after charging and depot parking. Start the wash manually, wait for the 20-minute service window, then confirm completion so the depot can release the bus for departure.</div></div><span class="pill pill-simple">Wash operator</span></div><div class="ops-grid">'+
-    '<div class="ops-card"><div class="ops-card-label">Wash due</div><div class="ops-card-value">'+due+'</div><div class="ops-card-note">buses requiring service</div></div>'+
-    '<div class="ops-card"><div class="ops-card-label">In wash</div><div class="ops-card-value">'+active+'</div><div class="ops-card-note">20-minute service window</div></div>'+
-    '<div class="ops-card"><div class="ops-card-label">Current wash clear</div><div class="ops-card-value">'+complete+'/'+fleet.length+'</div><div class="ops-card-note">within the three-day interval</div></div></div></div>'+
-    '<div class="panel" style="margin-top:16px;"><div class="panel-head"><span>Bus wash register</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual or system-based completion, release at 100%</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Wash completion</th><th>Wash status</th><th>Last wash</th><th>Departure state</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+  return '<div class="section" style="margin-top:18px;">'+
+    '<div class="ops-brief" style="padding:16px 18px;">'+
+      '<div class="ops-brief-head" style="margin-bottom:10px;">'+
+        '<div><div class="ops-brief-title">'+icon('drop')+'Wash station</div><div class="ops-brief-copy">Start the wash, wait for the service window, and confirm completion.</div></div>'+
+        '<span class="pill pill-simple">Wash operator</span>'+
+      '</div>'+
+      '<div class="ops-grid" style="grid-template-columns:repeat(3,minmax(120px,1fr));">'+
+        '<div class="ops-card"><div class="ops-card-label">Due</div><div class="ops-card-value">'+due+'</div><div class="ops-card-note">needs wash</div></div>'+
+        '<div class="ops-card"><div class="ops-card-label">In wash</div><div class="ops-card-value">'+active+'</div><div class="ops-card-note">running now</div></div>'+
+        '<div class="ops-card"><div class="ops-card-label">Clean</div><div class="ops-card-value">'+complete+'</div><div class="ops-card-note">completed</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="panel" style="margin-top:16px;">'+
+      '<div class="panel-head"><span>Wash dashboard</span><span style="color:var(--muted);font-weight:400;font-size:11px;">manual wash check and completion</span></div>'+
+      '<div class="tablewrap"><table><thead><tr><th>Bus</th><th>Wash%</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '</div>'+
+  '</div>';
 }
 
 function renderDepartureReadiness(){
