@@ -340,12 +340,12 @@ function makeFleet(){
 }
 var fleet = makeFleet();
 var AUTH_USERS = [
-  {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
-  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
-  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
-  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
-  {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
-  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['overview','schedule','fleet','tracking','setup','allocation','charging','washing']},
+  {id:'ops.admin', password:'Ops@2026', name:'Operations Admin', role:'Depot Operations', tabs:['schedule','allocation']},
+  {id:'inspector.01', password:'Inspect@2026', name:'Shed Inspector', role:'Inspector', tabs:['schedule','allocation']},
+  {id:'internal.supervisor', password:'Internal@2026', name:'Internal Supervisor', role:'Internal Supervisor', tabs:['schedule','allocation']},
+  {id:'external.supervisor', password:'External@2026', name:'External Supervisor', role:'External Supervisor', tabs:['schedule','allocation']},
+  {id:'depot.manager', password:'Depot@2026', name:'Depot Manager', role:'Depot Manager', tabs:['schedule','allocation']},
+  {id:'city.manager', password:'City@2026', name:'City Manager', role:'City Manager', tabs:['schedule','allocation']},
   {id:'charging.station', password:'Charge@2026', name:'Charging Station Operator', role:'Charging Station', tabs:['charging']},
   {id:'wash.station', password:'Wash@2026', name:'Bus Wash Operator', role:'Bus Wash', tabs:['washing']}
 ];
@@ -749,7 +749,7 @@ function render(){
   if(!signedInUser){ app.innerHTML = renderLogin(); bindLogin(); return; }
   if(signedInUser.role==='Charging Station') workspaceTab = 'charging';
   if(signedInUser.role==='Bus Wash') workspaceTab = 'washing';
-  if(!canAccessTab(workspaceTab)) workspaceTab = 'overview';
+  if(!canAccessTab(workspaceTab)) workspaceTab = 'allocation';
   app.innerHTML = renderHeader() + renderWorkspaceNav() + (signedInUser.role==='Charging Station' ? renderChargingStation() : signedInUser.role==='Bus Wash' ? renderWashStation() : renderCockpit() + renderWorkspaceContent());
   bindEvents();
 }
@@ -760,7 +760,7 @@ function canEditDepot(){ return !!signedInUser; }
 function canVerifyCity(){ return !!signedInUser; }
 
 function renderWorkspaceNav(){
-  var tabs = [{id:'overview',label:'Overview'},{id:'allocation',label:'Allocation'},{id:'schedule',label:'Schedule'},{id:'fleet',label:'Fleet data'},{id:'tracking',label:'Live tracking'},{id:'setup',label:'Depot setup'},{id:'charging',label:'Charging station'},{id:'washing',label:'Bus wash'}];
+  var tabs = [{id:'schedule',label:'Schedule'},{id:'allocation',label:'Allocation'}];
   return '<nav class="workspace-nav" aria-label="Operations views">'+tabs.filter(function(tab){return canAccessTab(tab.id);}).map(function(tab){return '<button class="workspace-tab '+(workspaceTab===tab.id?'active':'')+'" data-workspace-tab="'+tab.id+'">'+tab.label+'</button>';}).join('')+'</nav>';
 }
 
