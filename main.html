@@ -871,9 +871,54 @@ function renderAllocationScreen(){
   '</div>';
 }
 
+function renderSimpleScheduleAssignment(){
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var routeRows = routes.map(function(route){
+    var allowedGrade = DRIVER_MATCH[route.category];
+    var allowedBusCats = MATCH_TABLE[route.category][slot.cat];
+    var readyBuses = fleet.filter(function(bus){
+      return isAvailableNow(bus) && allowedBusCats.indexOf(rangeCategory(effectiveRange(bus)))!==-1 && canServeRoute(bus, route);
+    });
+    var busOptions = readyBuses.length ? readyBuses : fleet.filter(isAvailableNow);
+    var busHtml = busOptions.map(function(bus){
+      return '<option value="'+bus.id+'"'+(bus.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).busId||'')?' selected':'')+'>'+bus.id+' &middot; '+rangeCategory(effectiveRange(bus))+' &middot; '+bus.soc+'%</option>';
+    }).join('');
+    if(!busHtml){ busHtml = '<option value="">No bus available</option>'; }
+    var drvOptions = drivers.filter(function(d){
+      return d.status==='Available' && allowedGrade.indexOf(d.grade)!==-1;
+    }).map(function(d){
+      return '<option value="'+d.id+'"'+(d.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).driverId||'')?' selected':'')+'>'+d.id+' &middot; '+d.grade+'</option>';
+    }).join('');
+    if(!drvOptions){ drvOptions = '<option value="">No driver available</option>'; }
+    return '<div class="assign-row" style="display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr;align-items:center;gap:10px;padding:10px 12px;">' +
+      '<div><div style="font-size:12px;font-weight:700;">'+route.code+'</div><div style="font-size:11px;color:var(--muted);">'+route.name+' &middot; '+route.category+'</div></div>' +
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Bus</div><select class="reassign-bus-sel" data-route="'+route.id+'" style="width:100%;">'+busHtml+'</select></div>' +
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Driver</div><select class="reassign-drv-sel" data-route="'+route.id+'" style="width:100%;">'+drvOptions+'</select></div>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="section" style="margin-top:18px;">' +
+    '<div class="ops-brief" style="padding:16px 18px;">' +
+      '<div class="ops-brief-head" style="margin-bottom:10px;">' +
+        '<div><div class="ops-brief-title">'+icon('spark')+'Route assignment</div><div class="ops-brief-copy">Select the bus and driver for each route during the chosen time slot. The list only shows buses that fit the route and time category.</div></div>' +
+        '<span class="pill pill-simple">'+slot.label+' &middot; '+slot.cat+'</span>' +
+      '</div>' +
+      '<div class="ops-grid" style="grid-template-columns:repeat(3,minmax(120px,1fr));">' +
+        '<div class="ops-card"><div class="ops-card-label">Available buses</div><div class="ops-card-value">'+fleet.filter(isAvailableNow).length+'</div><div class="ops-card-note">in depot now</div></div>' +
+        '<div class="ops-card"><div class="ops-card-label">Ready drivers</div><div class="ops-card-value">'+drivers.filter(function(d){ return d.status==='Available'; }).length+'</div><div class="ops-card-note">qualified staff</div></div>' +
+        '<div class="ops-card"><div class="ops-card-label">Route count</div><div class="ops-card-value">'+routes.length+'</div><div class="ops-card-note">in this schedule</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="panel" style="margin-top:16px;">' +
+      '<div class="panel-head"><span>Bus and driver selection</span><span style="color:var(--muted);font-weight:400;font-size:11px;">choose route-wise assignment</span></div>' +
+      '<div style="padding:10px 12px;">'+routeRows+'</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderWorkspaceContent(){
   if(workspaceTab==='allocation') return renderAllocationScreen();
-  if(workspaceTab==='schedule') return '<p class="tab-context">Build the next departure plan from the selected time window. Allocation checks battery, effective range, wash completion, shed clearance, route category and driver availability.</p>'+renderSlotsSection()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderChartAndRun()+renderResult()+renderPlanningSection();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderSimpleScheduleAssignment();
   if(workspaceTab==='fleet') return '<p class="tab-context">Inspect one vehicle at a time, clear the shed-out checklist, and review the fleet data used by the matching engine.</p>'+renderFleetReadiness()+renderShedChecklist()+renderTablesSection();
   if(workspaceTab==='tracking') return '<p class="tab-context">Monitor vehicle movement, driver-reported status, battery signals and return-to-depot confirmation.</p>'+renderTrackingInsights()+renderLiveSection()+renderTripMonitor();
   if(workspaceTab==='setup') return renderDepotSetup();
