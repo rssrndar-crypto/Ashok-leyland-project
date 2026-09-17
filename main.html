@@ -1543,7 +1543,6 @@ function bindEvents(){
   if(oneClickSchedule) oneClickSchedule.onclick = function(){
     if(!canSchedule()) return;
     if(!fleet.some(function(b){return workflowReady(b) && isEligible(b);})) { vehicleLookupMessage = 'No bus is fully charged, parked, washed within the three-day interval, and manually released for departure.'; render(); return; }
-    if(!verificationState.depot || !verificationState.city){ vehicleLookupMessage = 'Schedule is held until depot manager and city manager verification is complete in Depot setup.'; render(); return; }
     result = computeAllocation(); startTrips(result.assignments); washScheduledAt = null;
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
@@ -1655,7 +1654,7 @@ function bindEvents(){
   if(scheduleDateInput) scheduleDateInput.onchange = function(){ scheduleDate = this.value || scheduleDate; result = null; render(); };
   document.querySelectorAll('.slot').forEach(function(el){ el.onclick = function(){ slotId = el.getAttribute('data-slot'); result = null; render(); }; });
   var runBtn = document.getElementById('runBtn');
-  if(runBtn) runBtn.onclick = function(){ if(!canSchedule()) return; if(!verificationState.depot || !verificationState.city){ alert('Complete depot manager and city manager verification in Depot setup before scheduling.'); return; } result = computeAllocation(); startTrips(result.assignments); render(); };
+  if(runBtn) runBtn.onclick = function(){ if(!canSchedule()) return; result = computeAllocation(); startTrips(result.assignments); render(); };
   var dayBtn = document.getElementById('dayBtn');
   if(dayBtn) dayBtn.onclick = runFullDay;
   document.querySelectorAll('.soc-in').forEach(function(el){ el.onchange = function(){ updateBus(el.getAttribute('data-id'),'soc',Number(el.value)); }; });
