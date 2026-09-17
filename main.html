@@ -693,14 +693,24 @@ function clearSession(){
   try{ sessionStorage.removeItem(SESSION_KEY); }catch(error){}
 }
 function renderLogin(errorText){
-  var selectedMode = window.loginModeId || 'control';
-  var mode = LOGIN_MODES.filter(function(item){return item.id===selectedMode;})[0] || LOGIN_MODES[0];
-  var modeButtons = LOGIN_MODES.map(function(item){
-    return '<button class="login-mode '+(item.id===mode.id?'active':'')+'" type="button" data-login-mode="'+item.id+'" aria-pressed="'+(item.id===mode.id)+'">'+icon(item.icon)+'<span><b>'+item.label+'</b>'+item.detail+'</span></button>';
-  }).join('');
-  return '<div class="login-shell"><div class="login-layout">'+
-    '<section class="login-story"><div class="login-mark">'+icon('bus')+'</div><div class="login-eyebrow">Ashok Leyland | Fleet command</div><h2>Make every departure count.</h2><p>Securely access the Chandapura Depot operations cockpit for intelligent allocation, battery readiness, driver matching, and live vehicle status.</p><div class="login-signals"><span class="login-signal"><b>24 buses</b>depot fleet</span><span class="login-signal"><b>Route fit</b>match scoring</span><span class="login-signal"><b>Live status</b>vehicle signals</span></div><div class="login-proof"><div><strong>Decision-ready</strong>readiness before dispatch</div><div style="text-align:right;"><strong>Depot-scoped</strong>Chandapura operations</div></div></section>'+
-    '<section class="login-card"><h1>Welcome back</h1><p class="login-sub">Choose a workspace view, then sign in with any authorized account.</p><div class="login-access-label">Workspace view</div><div class="login-modes">'+modeButtons+'</div><div class="login-context">'+icon('check')+'<span>'+mode.label+' selected. Your account permissions remain active after sign-in.</span></div><form id="loginForm"><label class="login-label" for="loginId">User ID</label><input class="login-input" id="loginId" autocomplete="username" placeholder="Enter your user ID" required><label class="login-label" for="loginPassword">Password</label><div class="password-wrap"><input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password">Show</button></div><div class="login-error">'+(errorText||'')+'</div><button class="btn-primary login-submit" type="submit">'+icon('check')+' Continue securely</button><div class="login-help"><span>Chandapura Depot</span><span>Protected session</span></div></form><div class="login-meta">Authorized workspace for depot operations.<br>Session data stays in this browser.</div></section>'+
+  var selectedMode = window.loginModeId || 'service';
+  var mode = LOGIN_MODES.filter(function(item){return item.id===selectedMode;})[0] || LOGIN_MODES[2];
+  return '<div class="login-shell"><div class="login-layout" style="grid-template-columns:1fr;max-width:460px;">'+
+    '<section class="login-card" style="padding:32px 28px;">'+
+      '<h1 style="font-size:26px; margin-bottom:8px;">Depot Login</h1>'+
+      '<p class="login-sub" style="margin-bottom:18px;">Enter your station ID and password manually.</p>'+
+      '<div class="login-context" style="margin-bottom:16px;">'+icon('check')+'<span>Example: charging.station / Charge@2026 or wash.station / Wash@2026</span></div>'+
+      '<form id="loginForm">'+
+        '<label class="login-label" for="loginId">User ID</label>'+
+        '<input class="login-input" id="loginId" autocomplete="username" placeholder="Enter user ID" required>'+
+        '<label class="login-label" for="loginPassword">Password</label>'+
+        '<div class="password-wrap"><input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required><button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password">Show</button></div>'+
+        '<div class="login-error">'+(errorText||'')+'</div>'+
+        '<button class="btn-primary login-submit" type="submit">'+icon('check')+' Sign In</button>'+
+      '</form>'+
+      '<div class="login-help" style="margin-top:12px;"><span>Service station access</span><span>'+mode.label+'</span></div>'+
+      '<div class="login-meta" style="margin-top:16px; padding-top:12px;">Use only the required station login details. No extra workspace selection is needed.</div>'+
+    '</section>'+
   '</div></div>';
 }
 function bindLogin(){
