@@ -879,7 +879,7 @@ function renderSimpleScheduleAssignment(){
       return '<div><span class="pill '+pillClass(category)+'">'+category+'</span> <span style="font-size:10.5px;color:var(--muted);">'+names+'</span></div>';
     }).join('');
     var busHtml = busOptions.map(function(bus){
-      return '<option value="'+bus.id+'"'+(bus.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).busId||'')?' selected':'')+'>'+bus.id+' &middot; '+rangeCategory(effectiveRange(bus))+' &middot; '+bus.soc+'%</option>';
+      return '<option value="'+bus.id+'"'+(bus.id===((result&&result.assignments.filter(function(a){return a.route.id===route.id;})[0]||{}).busId||'')?' selected':'')+'>'+bus.id+' &middot; Category '+rangeCategory(effectiveRange(bus))+'</option>';
     }).join('');
     if(!busHtml){ busHtml = '<option value="">No bus available</option>'; }
     var drvOptions = drivers.filter(function(d){
@@ -1025,19 +1025,19 @@ function renderScheduleChecks(){
   var rows = fleet.map(function(bus){
     var checks = stationChecks(bus);
     var fitRoutes = routes.filter(function(route){return canServeRoute(bus, route);}).map(function(route){return route.code;}).join(', ') || 'No route by current range';
-    var chargeAction = checks.charge ? '<span class="pill pill-simple">Charge YES</span>' : '<button class="btn schedule-charge-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Mark charge YES</button>';
+    var chargeAction = checks.charge ? '<span class="pill pill-simple">Charge complete</span>' : '<button class="btn schedule-charge-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Confirm charge complete</button>';
     var washAction;
     if(checks.wash){
-      washAction = '<span class="pill pill-simple">Wash YES</span>';
+      washAction = '<span class="pill pill-simple">Wash complete</span>';
     } else if(bus.washStartedAt){
       var washMinutes = Math.floor((Date.now()-bus.washStartedAt)/60000);
-      washAction = washMinutes>=20 ? '<button class="btn schedule-wash-complete" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Confirm wash YES</button>' : '<span class="pill pill-moderate">Washing '+Math.max(0,20-washMinutes)+' min</span>';
+      washAction = washMinutes>=20 ? '<button class="btn schedule-wash-complete" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Confirm wash complete</button>' : '<span class="pill pill-moderate">Wash in progress</span>';
     } else {
       washAction = bus.chargeConfirmed && bus.parkedAfterCharge && (washDue(bus)||!bus.washCompletedAt) ? '<button class="btn schedule-wash-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Start wash</button>' : '<span class="pill pill-moderate">Wash hold</span>';
     }
-    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><span class="pill '+pillClass(rangeCategory(effectiveRange(bus)))+'">'+rangeCategory(effectiveRange(bus))+'</span></td><td>'+chargeAction+'</td><td>'+washAction+'</td><td style="font-size:10.5px;color:var(--muted);">'+fitRoutes+'</td><td><span class="pill '+(checks.ready?'pill-simple':'pill-moderate')+'">'+(checks.ready?'READY':'CHECK '+((checks.charge?1:0)+(checks.wash?1:0))+' OF 2')+'</span></td></tr>';
+    return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><span class="pill '+pillClass(rangeCategory(effectiveRange(bus)))+'">'+rangeCategory(effectiveRange(bus))+'</span></td><td>'+chargeAction+'</td><td>'+washAction+'</td><td style="font-size:10.5px;color:var(--muted);">'+fitRoutes+'</td><td><span class="pill '+(checks.ready?'pill-simple':'pill-moderate')+'">'+(checks.ready?'READY FOR ROUTE':'NOT READY - '+((checks.charge?1:0)+(checks.wash?1:0))+'/2')+'</span></td></tr>';
   }).join('');
-  return '<div class="section"><div class="section-label">'+icon('check')+'Charge and wash checks <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; complete the two checks before route allocation</span></div><div class="panel"><div class="panel-head"><span>Main bus readiness</span><span style="color:var(--muted);font-weight:400;font-size:11px;">route fit follows battery range</span></div><div class="tablewrap"><table><thead><tr><th>Bus / plate</th><th>Fitness</th><th>Charge</th><th>Wash</th><th>Routes by range</th><th>Allocation</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+  return '<div class="section"><div class="section-label">'+icon('check')+'Bus readiness <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; confirm Charge complete and Wash complete, then the bus is ready for route</span></div><div class="panel"><div class="panel-head"><span>Main dashboard checks</span><span style="color:var(--muted);font-weight:400;font-size:11px;">only two completion checks</span></div><div class="tablewrap"><table><thead><tr><th>Bus / plate</th><th>Fitness</th><th>Charge</th><th>Wash</th><th>Routes by range</th><th>Allocation</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
 function renderShedChecklist(){
