@@ -1026,7 +1026,15 @@ function renderScheduleChecks(){
     var checks = stationChecks(bus);
     var fitRoutes = routes.filter(function(route){return canServeRoute(bus, route);}).map(function(route){return route.code;}).join(', ') || 'No route by current range';
     var chargeAction = checks.charge ? '<span class="pill pill-simple">Charge YES</span>' : '<button class="btn schedule-charge-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Mark charge YES</button>';
-    var washAction = checks.wash ? '<span class="pill pill-simple">Wash YES</span>' : '<button class="btn schedule-wash-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Mark wash YES</button>';
+    var washAction;
+    if(checks.wash){
+      washAction = '<span class="pill pill-simple">Wash YES</span>';
+    } else if(bus.washStartedAt){
+      var washMinutes = Math.floor((Date.now()-bus.washStartedAt)/60000);
+      washAction = washMinutes>=20 ? '<button class="btn schedule-wash-complete" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Confirm wash YES</button>' : '<span class="pill pill-moderate">Washing '+Math.max(0,20-washMinutes)+' min</span>';
+    } else {
+      washAction = bus.chargeConfirmed && bus.parkedAfterCharge && (washDue(bus)||!bus.washCompletedAt) ? '<button class="btn schedule-wash-check" data-bus="'+bus.id+'" type="button" style="padding:4px 8px;font-size:10px;">Start wash</button>' : '<span class="pill pill-moderate">Wash hold</span>';
+    }
     return '<tr><td class="mono">'+bus.id+'<div style="color:var(--muted);font-size:10px;">'+bus.plate+'</div></td><td><span class="pill '+pillClass(rangeCategory(effectiveRange(bus)))+'">'+rangeCategory(effectiveRange(bus))+'</span></td><td>'+chargeAction+'</td><td>'+washAction+'</td><td style="font-size:10.5px;color:var(--muted);">'+fitRoutes+'</td><td><span class="pill '+(checks.ready?'pill-simple':'pill-moderate')+'">'+(checks.ready?'READY':'CHECK '+((checks.charge?1:0)+(checks.wash?1:0))+' OF 2')+'</span></td></tr>';
   }).join('');
   return '<div class="section"><div class="section-label">'+icon('check')+'Charge and wash checks <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; complete the two checks before route allocation</span></div><div class="panel"><div class="panel-head"><span>Main bus readiness</span><span style="color:var(--muted);font-weight:400;font-size:11px;">route fit follows battery range</span></div><div class="tablewrap"><table><thead><tr><th>Bus / plate</th><th>Fitness</th><th>Charge</th><th>Wash</th><th>Routes by range</th><th>Allocation</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
@@ -1519,7 +1527,7 @@ function bindEvents(){
     el.onclick = function(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
       if(!bus) return;
-      bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = true;
+      bus.soc = 100; bus.socHistory.push(100); bus.chargeConfirmed = true; bus.parkedAfterCharge = true; bus.washCompletedAt = null; bus.departureReady = false;
       logEvent(bus.id+' charge check completed on main schedule dashboard');
       render();
     };
@@ -1527,9 +1535,18 @@ function bindEvents(){
   document.querySelectorAll('.schedule-wash-check').forEach(function(el){
     el.onclick = function(){
       var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
-      if(!bus) return;
-      bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = true;
-      logEvent(bus.id+' wash check completed on main schedule dashboard');
+      if(!bus || !bus.chargeConfirmed || !bus.parkedAfterCharge) return;
+      bus.washStartedAt = Date.now(); bus.washProgress = 0; bus.washCompletedAt = null; bus.departureReady = false; washBusId = bus.id;
+      logEvent(bus.id+' wash started from main schedule dashboard');
+      render();
+    };
+  });
+  document.querySelectorAll('.schedule-wash-complete').forEach(function(el){
+    el.onclick = function(){
+      var bus = fleet.filter(function(b){return b.id===el.getAttribute('data-bus');})[0];
+      if(!bus || !bus.washStartedAt || Date.now()-bus.washStartedAt<20*60000) return;
+      bus.washProgress = 100; bus.washCompletedAt = Date.now(); bus.lastWashAt = bus.washCompletedAt; bus.washStartedAt = null; bus.departureReady = true; washBusId = bus.id;
+      logEvent(bus.id+' wash completed from main schedule dashboard');
       render();
     };
   });
