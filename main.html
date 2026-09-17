@@ -571,7 +571,8 @@ function computeAllocationFor(slotCat){
   var assignments = []; var gaps = [];
   sorted.forEach(function(route){
     var allowedBus = MATCH_TABLE[route.category][slotCat];
-    var busPref = allowedBus.slice().sort(function(x,y){ return CAT_RANK[x]-CAT_RANK[y]; });
+    var preferredCategories = route.category==='Complex' ? ['A','B','C'] : route.category==='Moderate' ? ['B','A','C'] : ['C','B','A'];
+    var busPref = preferredCategories.filter(function(category){ return allowedBus.indexOf(category)!==-1; });
     var categoryCands = busPool.filter(function(b){ return !usedBus[b.id] && allowedBus.indexOf(rangeCategory(effectiveRange(b)))!==-1; });
     var busCands = categoryCands.filter(function(b){ return canServeRoute(b, route); })
       .sort(function(a,b){
@@ -858,7 +859,7 @@ function renderAllocationScreen(){
   return '<div class="section" style="margin-top:18px;">' +
     '<div class="ops-brief" style="padding:16px 18px;">' +
       '<div class="ops-brief-head" style="margin-bottom:10px;">' +
-        '<div><div class="ops-brief-title">'+icon('grid')+'Depot allocation</div><div class="ops-brief-copy">Available buses are grouped by A, B, and C fitness. The depot uses time-slot route demand and each bus range to assign the right vehicle for the right route.</div></div>' +
+        '<div><div class="ops-brief-title">'+icon('grid')+'Depot allocation</div><div class="ops-brief-copy">A buses go first to hardest routes, B buses to moderate routes, and C buses to normal routes. The depot uses time-slot demand and battery range to assign the best available bus.</div></div>' +
         '<span class="pill pill-simple">A/B/C fitment</span>' +
       '</div>' +
       '<div class="ops-grid" style="grid-template-columns:repeat(3,minmax(120px,1fr));">' +
@@ -907,7 +908,7 @@ function renderSimpleScheduleAssignment(){
 
   return '<div class="section" style="margin-top:18px;">' +
     '<div class="panel" style="margin-top:0;">' +
-      '<div class="panel-head"><span>'+slot.label+' &middot; '+slot.cat+'</span><span style="color:var(--muted);font-weight:400;font-size:11px;">Route assignment</span></div>' +
+      '<div class="panel-head"><span>'+slot.label+' &middot; '+slot.cat+'</span><span style="color:var(--muted);font-weight:400;font-size:11px;">A hardest &middot; B moderate &middot; C normal</span></div>' +
       '<div style="padding:10px 12px;">'+routeRows+'</div>' +
     '</div>' +
   '</div>';
