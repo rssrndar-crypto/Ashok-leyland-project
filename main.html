@@ -925,7 +925,7 @@ function renderSimpleScheduleAssignment(){
 
 function renderWorkspaceContent(){
   if(workspaceTab==='allocation') return renderAllocationScreen();
-  if(workspaceTab==='schedule') return renderSlotsSection()+renderSimpleScheduleAssignment();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderPlanningSection()+renderChartAndRun()+renderResult()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderSimpleScheduleAssignment()+renderTripMonitor();
   return renderAllocationScreen();
 }
 
