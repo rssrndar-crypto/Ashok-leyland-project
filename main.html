@@ -326,7 +326,7 @@ var routes = [
 ];
 routes.forEach(function(r){ r.category = routeCategory(r.reqRange); });
 
-function plateFor(id){ return id; }
+function plateFor(id){ return 'KA-51-MB-'+id.slice(2).padStart(4,'0'); }
 function makeFleet(){
   var raw = [
     ['BM248',95,true,true,true,true,false,3200,97], ['BM278',90,true,true,true,true,false,7800,94], ['BM200',88,true,false,true,true,false,9600,91],
@@ -467,13 +467,13 @@ function markReturned(busId){
 
 function makeDrivers(){
   return [
-    {id:'DR-01', grade:'Senior', status:'Available'}, {id:'DR-02', grade:'Senior', status:'Available'},
-    {id:'DR-03', grade:'Senior', status:'Off Duty'},  {id:'DR-04', grade:'Senior', status:'Available'},
-    {id:'DR-05', grade:'Senior', status:'On Leave'},
-    {id:'DR-06', grade:'Standard', status:'Available'}, {id:'DR-07', grade:'Standard', status:'Available'},
-    {id:'DR-08', grade:'Standard', status:'Available'}, {id:'DR-09', grade:'Standard', status:'Off Duty'},
-    {id:'DR-10', grade:'Standard', status:'Available'}, {id:'DR-11', grade:'Standard', status:'Available'},
-    {id:'DR-12', grade:'Standard', status:'On Leave'}
+    {id:'DR-01', name:'Arun Kumar', grade:'Senior', status:'Available'}, {id:'DR-02', name:'Ravi Shankar', grade:'Senior', status:'Available'},
+    {id:'DR-03', name:'Manoj Babu', grade:'Senior', status:'Off Duty'},  {id:'DR-04', name:'Suresh Gowda', grade:'Senior', status:'Available'},
+    {id:'DR-05', name:'Vijay Raj', grade:'Senior', status:'On Leave'},
+    {id:'DR-06', name:'Kiran M', grade:'Standard', status:'Available'}, {id:'DR-07', name:'Naveen Kumar', grade:'Standard', status:'Available'},
+    {id:'DR-08', name:'Prakash S', grade:'Standard', status:'Available'}, {id:'DR-09', name:'Ganesh B', grade:'Standard', status:'Off Duty'},
+    {id:'DR-10', name:'Ramesh N', grade:'Standard', status:'Available'}, {id:'DR-11', name:'Deepak H', grade:'Standard', status:'Available'},
+    {id:'DR-12', name:'Sanjay P', grade:'Standard', status:'On Leave'}
   ];
 }
 var drivers = makeDrivers();
@@ -1431,6 +1431,14 @@ function renderChartAndRun(){
 function renderResult(){
   if(!result) return '';
   var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  function fitExplanation(route,bus,drv){
+    var category = rangeCategory(effectiveRange(bus));
+    var allowed = MATCH_TABLE[route.category][slot.cat];
+    var margin = Math.round((effectiveRange(bus)-route.reqRange)*10)/10;
+    var categoryReason = allowed.length===1 ? 'Category '+allowed[0]+' is required for this '+route.category+' route' : 'Category '+category+' is allowed for this '+route.category+' route';
+    var driverReason = DRIVER_MATCH[route.category].length===1 ? drv.grade+' driver is required' : drv.grade+' driver is qualified';
+    return '<b>Best fit:</b> '+categoryReason+'. '+bus.plate+' provides '+effectiveRange(bus)+' km effective range for a '+route.reqRange+' km route ('+(margin>=0?'+'+margin+' km spare':'-'+Math.abs(margin)+' km short')+'). '+drv.name+' is a '+drv.grade+' driver, so the route can be assigned safely.';
+  }
   var rows = result.assignments.map(function(a){
     var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
     var drv = drivers.filter(function(d){return d.id===a.driverId;})[0];
@@ -1439,7 +1447,8 @@ function renderResult(){
       '<td><span class="pill '+pillClass(a.route.category)+'">'+a.route.category+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs '+MATCH_TABLE[a.route.category][slot.cat].join('/')+'</div></td>' +
       '<td><strong class="mono">'+bus.id+'</strong><div style="font-size:10px;color:var(--muted);">Plate: '+bus.plate+'</div></td>' +
       '<td><span class="pill '+pillClass(cat)+'">Category '+cat+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px;">'+effectiveRange(bus)+' km range</div></td>' +
-      '<td><strong>'+drv.id+'</strong><div style="font-size:10px;color:var(--muted);">'+drv.grade+' driver</div></td></tr>';
+      '<td><strong>'+drv.name+'</strong><div style="font-size:10px;color:var(--muted);">'+drv.id+' &middot; '+drv.grade+' driver</div></td>' +
+      '<td style="min-width:290px;font-size:10.5px;line-height:1.45;color:#40536a;">'+fitExplanation(a.route,bus,drv)+'</td></tr>';
   }).join('');
 
   var gapsHtml = '';
@@ -1455,8 +1464,8 @@ function renderResult(){
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
     '<span>Bus allocation - '+scheduleDate+' &middot; '+slot.label+'</span>' +
     '<span style="color:var(--muted);font-weight:400;">'+result.assignments.length+' assigned, '+result.gaps.length+' gaps</span></div>' +
-    '<div class="panel"><div class="panel-head"><span>Assigned buses and drivers</span><span style="color:var(--muted);font-weight:400;font-size:11px;">A = longest range &middot; B = medium range &middot; C = shorter range</span></div>' +
-    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Route need</th><th>Bus / number plate</th><th>Bus category</th><th>Driver</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>' + gapsHtml + '</div>';
+    '<div class="panel"><div class="panel-head"><span>Assigned buses, drivers and route fit</span><span style="color:var(--muted);font-weight:400;font-size:11px;">A = longest range &middot; B = medium range &middot; C = shorter range</span></div>' +
+    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Route need</th><th>Bus / number plate</th><th>Bus category</th><th>Driver details</th><th>Why this bus is right</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>' + gapsHtml + '</div>';
 }
 
 function renderTripMonitor(){
