@@ -195,13 +195,6 @@
   .charge-state{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;}
   .search-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
   .search-row input{flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:8px 9px;font:12px inherit;}
-  .dispatch-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:18px;}
-  .dispatch-summary-card{border:1px solid var(--border);border-radius:9px;background:linear-gradient(145deg,#fff,#f5f9fb);padding:11px 12px;}
-  .dispatch-summary-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;}
-  .dispatch-summary-value{font-size:19px;font-weight:800;color:#0f2744;margin-top:4px;}
-  .dispatch-summary-note{font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:3px;}
-  .dispatch-summary-bar{height:5px;border-radius:4px;background:#e4edf1;overflow:hidden;margin-top:8px;}.dispatch-summary-bar span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#0b4ea2,#087d78);}
-  @media(max-width:760px){.dispatch-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
   @media(max-width:760px){.cockpit-hero,.cockpit-grid{grid-template-columns:1fr;}.role-grid{grid-template-columns:repeat(2,1fr);}.cockpit-title{font-size:22px;}}
 </style>
 </head>
@@ -261,7 +254,7 @@ function stationChecks(b){
   var wash = !!b.washCompletedAt && !washDue(b);
   return {charge:charge, wash:wash, ready:charge&&wash, eligible:charge||wash};
 }
-function workflowReady(b){ return stationChecks(b).ready; }
+function workflowReady(b){ return stationChecks(b).eligible; }
 function isEligible(b){ return workflowReady(b); }
 function matchScore(bus, route){
   var margin = effectiveRange(bus)-route.reqRange;
@@ -874,24 +867,6 @@ function renderDepartureReadiness(){
   return '<div class="section"><div class="section-label">'+icon('check')+'Departure readiness register <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; buses cleared to leave the depot</span></div><div class="panel"><div class="panel-head"><span>'+ready.length+' of '+fleet.length+' buses ready</span><span style="color:var(--muted);font-weight:400;font-size:11px;">charge percentage and release gates</span></div><div class="tablewrap"><table><thead><tr><th>Bus</th><th>Battery SOC</th><th>Departure status</th><th>Current blocker</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 
-function renderDispatchSummary(){
-  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
-  var ready = fleet.filter(isAvailableNow);
-  var driversOnDuty = drivers.filter(function(d){return d.status==='Available';}).length;
-  var categoryCounts = {A:0,B:0,C:0};
-  ready.forEach(function(bus){ categoryCounts[rangeCategory(effectiveRange(bus))]++; });
-  var highDemand = routes.slice().sort(function(a,b){return b.schedules-a.schedules;})[0];
-  function card(label,value,note,bar){
-    return '<div class="dispatch-summary-card"><div class="dispatch-summary-label">'+label+'</div><div class="dispatch-summary-value">'+value+'</div><div class="dispatch-summary-note">'+note+'</div>'+(bar===undefined?'':'<div class="dispatch-summary-bar"><span style="width:'+bar+'%;"></span></div>')+'</div>';
-  }
-  return '<div class="section" style="margin-top:18px;padding-top:0;border-top:0;"><div class="section-label">'+icon('gauge')+'Dispatch overview <span style="color:var(--muted);font-weight:400;font-size:11px;">&mdash; '+slot.label+' demand and readiness</span></div><div class="dispatch-summary">'+
-    card('Ready buses',ready.length+'/'+fleet.length,'Both charge and wash checks complete',ready.length/fleet.length*100)+
-    card('Routes to schedule',routes.length,highDemand.code+' has the highest demand: '+highDemand.schedules+' trips')+
-    card('Drivers on duty',driversOnDuty+'/'+drivers.length,'Available drivers for this time slot',driversOnDuty/drivers.length*100)+
-    card('Range mix','A '+categoryCounts.A+' &middot; B '+categoryCounts.B+' &middot; C '+categoryCounts.C,'A longest range, C shortest range')+
-  '</div></div>';
-}
-
 function renderAllocationScreen(){
   var available = fleet.filter(isAvailableNow);
   var byCategory = {A:[], B:[], C:[]};
@@ -963,7 +938,7 @@ function renderSimpleScheduleAssignment(){
 }
 
 function renderWorkspaceContent(){
-  if(workspaceTab==='schedule') return renderSlotsSection()+renderScheduleChecks()+renderDispatchSummary()+renderAllocationScreen()+renderChartAndRun()+renderResult();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderScheduleChecks()+renderAllocationScreen()+renderChartAndRun()+renderResult();
   return renderAllocationScreen();
 }
 
