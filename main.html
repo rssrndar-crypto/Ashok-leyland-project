@@ -1458,6 +1458,21 @@ function renderResult(){
       return '<div class="gap-item"><span class="pill '+pillClass(category)+'">Category '+category+'</span> <strong>'+bus.id+'</strong> &middot; Plate: '+bus.plate+' &middot; '+effectiveRange(bus)+' km ('+(margin>=0?'+'+margin+' km spare':'-'+Math.abs(margin)+' km short')+') &middot; Driver: '+driverText+' &middot; <span style="font-weight:700;">'+status+'</span></div>';
     }).join('');
   }
+  function alternativeTableRows(route){
+    var allowed = MATCH_TABLE[route.category][slot.cat];
+    return allowed.map(function(category){
+      var bus = fleet.filter(function(item){ return rangeCategory(effectiveRange(item))===category && canServeRoute(item,route); })
+        .sort(function(a,b){ return effectiveRange(b)-effectiveRange(a); })[0];
+      var driver = drivers.filter(function(item){ return item.status==='Available' && DRIVER_MATCH[route.category].indexOf(item.grade)!==-1; })
+        .sort(function(a,b){ return DRV_RANK[b.grade]-DRV_RANK[a.grade]; })[0];
+      if(!bus) return '<tr><td><strong>'+route.code+'</strong><div style="font-size:10px;color:var(--muted);">'+route.name+'</div></td><td><span class="pill '+pillClass(category)+'">Category '+category+'</span></td><td colspan="3" style="color:var(--red);font-size:11px;">No bus in this category has enough effective range for '+route.reqRange+' km.</td></tr>';
+      var margin = Math.round((effectiveRange(bus)-route.reqRange)*10)/10;
+      var ready = isAvailableNow(bus);
+      var driverText = driver ? driver.name+' ('+driver.id+' &middot; '+driver.grade+')' : 'No qualified driver free';
+      var reason = ready && driver ? 'Best alternative: '+effectiveRange(bus)+' km covers the route with '+(margin>=0?'+'+margin+' km spare':'-'+Math.abs(margin)+' km')+'.' : !ready ? 'Hold: complete both charge and wash checks.' : 'Hold: qualified driver is unavailable.';
+      return '<tr><td><strong>'+route.code+'</strong><div style="font-size:10px;color:var(--muted);">'+route.name+'</div></td><td><span class="pill '+pillClass(category)+'">Category '+category+'</span></td><td><strong class="mono">'+bus.id+'</strong><div style="font-size:10px;color:var(--muted);">Plate: '+bus.plate+'</div></td><td>'+driverText+'</td><td style="font-size:10.5px;color:#40536a;">'+reason+'</td></tr>';
+    }).join('');
+  }
   var rows = result.assignments.map(function(a){
     var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
     var drv = drivers.filter(function(d){return d.id===a.driverId;})[0];
@@ -1480,11 +1495,14 @@ function renderResult(){
         return '<div class="gap-item"><strong>'+g.route.code+'</strong> needs Category '+MATCH_TABLE[g.route.category][slot.cat].join('/')+' bus + '+DRIVER_MATCH[g.route.category].join('/')+' driver - '+reasonText+'.</div>'+alternativesFor(g.route);
       }).join('') + '</div>';
   }
+  var alternativeRows = routes.map(function(route){ return alternativeTableRows(route); }).join('');
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
     '<span>Bus allocation - '+scheduleDate+' &middot; '+slot.label+'</span>' +
     '<span style="color:var(--muted);font-weight:400;">'+result.assignments.length+' assigned, '+result.gaps.length+' gaps</span></div>' +
     '<div class="panel"><div class="panel-head"><span>Assigned buses, drivers and route fit</span><span style="color:var(--muted);font-weight:400;font-size:11px;">A = longest range &middot; B = medium range &middot; C = shorter range</span></div>' +
-    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Route need</th><th>Bus / number plate</th><th>Bus category</th><th>Driver details</th><th>Why this bus is right</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>' + gapsHtml + '</div>';
+    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Route need</th><th>Bus / number plate</th><th>Bus category</th><th>Driver details</th><th>Why this bus is right</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>' +
+    '<div class="panel" style="margin-top:12px;"><div class="panel-head"><span>Alternative buses for every route</span><span style="color:var(--muted);font-weight:400;font-size:11px;">Use the best ready option, or complete the stated hold reason</span></div>' +
+    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Category</th><th>Alternative bus / plate</th><th>Driver</th><th>Fitness and reason</th></tr></thead><tbody>'+alternativeRows+'</tbody></table></div></div>' + gapsHtml + '</div>';
 }
 
 function renderTripMonitor(){
