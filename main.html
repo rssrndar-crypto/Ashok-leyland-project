@@ -255,7 +255,7 @@ function stationChecks(b){
   return {charge:charge, wash:wash, ready:charge&&wash, eligible:charge||wash};
 }
 function workflowReady(b){ return stationChecks(b).eligible; }
-function isEligible(b){ return !b.maintenance && b.interiorClean && b.exteriorClean && b.oilCheck && b.engineCheck && workflowReady(b); }
+function isEligible(b){ return workflowReady(b); }
 function matchScore(bus, route){
   var margin = effectiveRange(bus)-route.reqRange;
   var score = Math.max(0, Math.min(40, margin/route.reqRange*40));
@@ -938,7 +938,7 @@ function renderSimpleScheduleAssignment(){
 }
 
 function renderWorkspaceContent(){
-  if(workspaceTab==='schedule') return renderSlotsSection()+renderScheduleChecks()+renderAllocationScreen()+renderPlanningSection()+renderChartAndRun()+renderResult()+renderBestBusFinder()+renderDepotAvailabilityTable()+renderSimpleScheduleAssignment()+renderTripMonitor();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderScheduleChecks()+renderAllocationScreen()+renderChartAndRun()+renderResult();
   return renderAllocationScreen();
 }
 
@@ -1435,20 +1435,11 @@ function renderResult(){
     var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
     var drv = drivers.filter(function(d){return d.id===a.driverId;})[0];
     var cat = rangeCategory(effectiveRange(bus));
-    var busOptions = fleet.filter(function(cb){ return cb.id===bus.id || isAvailableNow(cb); }).map(function(b){
-      return '<option value="'+b.id+'"'+(b.id===bus.id?' selected':'')+'>'+b.id+' '+b.plate+' - '+rangeCategory(effectiveRange(b))+' - '+b.soc+'%</option>';
-    }).join('');
-    var drvOptions = drivers.filter(function(d){return d.status==='Available';}).map(function(d){
-      return '<option value="'+d.id+'"'+(d.id===drv.id?' selected':'')+'>'+d.id+' - '+d.grade+'</option>';
-    }).join('');
-    return '<div class="assign-row"><div style="display:flex;gap:8px;align-items:center;"><span class="pill '+pillClass(a.route.category)+'">'+a.route.category+'</span>' +
-      '<b>'+a.route.code+'</b><span style="color:var(--muted);font-size:11px;">'+a.route.name+'</span></div>' +
-      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
-      '<select class="reassign-bus-sel" data-route="'+a.route.id+'">'+busOptions+'</select>' +
-      '<span class="pill '+pillClass(cat)+'">'+cat+'</span>' +
-      '<select class="reassign-drv-sel" data-route="'+a.route.id+'">'+drvOptions+'</select>' +
-      '<span class="pill '+(drv.grade==='Senior'?'pill-senior':'pill-standard')+'">'+drv.grade+'</span>' +
-      '</div></div>';
+    return '<tr><td><strong>'+a.route.code+'</strong><div style="font-size:10px;color:var(--muted);">'+a.route.name+'</div></td>' +
+      '<td><span class="pill '+pillClass(a.route.category)+'">'+a.route.category+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs '+MATCH_TABLE[a.route.category][slot.cat].join('/')+'</div></td>' +
+      '<td><strong class="mono">'+bus.id+'</strong><div style="font-size:10px;color:var(--muted);">Plate: '+bus.plate+'</div></td>' +
+      '<td><span class="pill '+pillClass(cat)+'">Category '+cat+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px;">'+effectiveRange(bus)+' km range</div></td>' +
+      '<td><strong>'+drv.id+'</strong><div style="font-size:10px;color:var(--muted);">'+drv.grade+' driver</div></td></tr>';
   }).join('');
 
   var gapsHtml = '';
@@ -1462,9 +1453,10 @@ function renderResult(){
       }).join('') + '</div>';
   }
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
-    '<span>Allocation result - '+scheduleDate+' &middot; '+slot.label+' ('+slot.cat+')</span>' +
+    '<span>Bus allocation - '+scheduleDate+' &middot; '+slot.label+'</span>' +
     '<span style="color:var(--muted);font-weight:400;">'+result.assignments.length+' assigned, '+result.gaps.length+' gaps</span></div>' +
-    rows + gapsHtml + '</div>';
+    '<div class="panel"><div class="panel-head"><span>Assigned buses and drivers</span><span style="color:var(--muted);font-weight:400;font-size:11px;">A = longest range &middot; B = medium range &middot; C = shorter range</span></div>' +
+    '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Route need</th><th>Bus / number plate</th><th>Bus category</th><th>Driver</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>' + gapsHtml + '</div>';
 }
 
 function renderTripMonitor(){
