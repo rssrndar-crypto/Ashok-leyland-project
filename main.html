@@ -356,6 +356,7 @@ function restoreFleetState(){
       var bus = fleet.filter(function(item){return item.id===savedBus.id;})[0];
       if(!bus) return;
       Object.keys(savedBus).forEach(function(key){ bus[key] = savedBus[key]; });
+      bus.plate = plateFor(bus.id);
     });
   }catch(error){}
 }
@@ -1439,6 +1440,24 @@ function renderResult(){
     var driverReason = DRIVER_MATCH[route.category].length===1 ? drv.grade+' driver is required' : drv.grade+' driver is qualified';
     return '<b>Best fit:</b> '+categoryReason+'. '+bus.plate+' provides '+effectiveRange(bus)+' km effective range for a '+route.reqRange+' km route ('+(margin>=0?'+'+margin+' km spare':'-'+Math.abs(margin)+' km short')+'). '+drv.name+' is a '+drv.grade+' driver, so the route can be assigned safely.';
   }
+  function alternativesFor(route){
+    var allowed = MATCH_TABLE[route.category][slot.cat];
+    return allowed.map(function(category){
+      var candidates = fleet.filter(function(bus){
+        return rangeCategory(effectiveRange(bus))===category && canServeRoute(bus,route);
+      }).sort(function(a,b){ return effectiveRange(b)-effectiveRange(a); });
+      var bus = candidates[0];
+      if(!bus) return '<div class="gap-item"><span class="pill '+pillClass(category)+'">Category '+category+'</span> No bus has enough effective range for this '+route.code+' route.</div>';
+      var driver = drivers.filter(function(item){
+        return item.status==='Available' && DRIVER_MATCH[route.category].indexOf(item.grade)!==-1;
+      }).sort(function(a,b){ return DRV_RANK[b.grade]-DRV_RANK[a.grade]; })[0];
+      var ready = isAvailableNow(bus);
+      var margin = Math.round((effectiveRange(bus)-route.reqRange)*10)/10;
+      var driverText = driver ? driver.name+' ('+driver.id+', '+driver.grade+')' : 'No qualified driver currently free';
+      var status = ready && driver ? 'ready alternative' : !ready ? 'needs charge/wash check' : 'driver unavailable';
+      return '<div class="gap-item"><span class="pill '+pillClass(category)+'">Category '+category+'</span> <strong>'+bus.id+'</strong> &middot; Plate: '+bus.plate+' &middot; '+effectiveRange(bus)+' km ('+(margin>=0?'+'+margin+' km spare':'-'+Math.abs(margin)+' km short')+') &middot; Driver: '+driverText+' &middot; <span style="font-weight:700;">'+status+'</span></div>';
+    }).join('');
+  }
   var rows = result.assignments.map(function(a){
     var bus = fleet.filter(function(b){return b.id===a.busId;})[0];
     var drv = drivers.filter(function(d){return d.id===a.driverId;})[0];
@@ -1458,7 +1477,7 @@ function renderResult(){
         var reasonText = g.reason==='driver' ? 'bus is fine, but no qualified driver is free' :
                           g.reason==='bus-range' ? 'category-matching buses exist, but none have enough real range left for this route\'s '+g.route.reqRange+'km - charge one up' :
                           g.reason==='bus' ? 'no eligible bus is free' : 'no bus and no qualified driver free';
-        return '<div class="gap-item">'+g.route.code+' needs Category '+MATCH_TABLE[g.route.category][slot.cat].join('/')+' bus + '+DRIVER_MATCH[g.route.category].join('/')+' driver - '+reasonText+'.</div>';
+        return '<div class="gap-item"><strong>'+g.route.code+'</strong> needs Category '+MATCH_TABLE[g.route.category][slot.cat].join('/')+' bus + '+DRIVER_MATCH[g.route.category].join('/')+' driver - '+reasonText+'.</div>'+alternativesFor(g.route);
       }).join('') + '</div>';
   }
   return '<div class="section"><div class="section-label" style="justify-content:space-between;">' +
