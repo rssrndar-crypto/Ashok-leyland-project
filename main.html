@@ -252,7 +252,7 @@ function washDue(b){ return !b.lastWashAt || Date.now()-b.lastWashAt >= WASH_INT
 function stationChecks(b){
   var charge = !!b.chargeConfirmed && b.soc>=98;
   var wash = !!b.washCompletedAt && !washDue(b);
-  return {charge:charge, wash:wash, ready:charge&&wash, eligible:charge||wash};
+  return {charge:charge, wash:wash, ready:charge&&wash, eligible:charge&&wash};
 }
 function workflowReady(b){ return stationChecks(b).eligible; }
 function isEligible(b){ return workflowReady(b); }
@@ -1410,6 +1410,7 @@ function renderChartAndRun(){
   var max = Math.max(counts.A,counts.B,counts.C,1);
   var lowBatt = fleet.filter(needsCharge).length;
   var onRoute = fleet.filter(function(b){ return !isInDepot(b); }).length;
+  var readyCount = fleet.filter(isAvailableNow).length;
   var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
   function bar(label,val,color){
     return '<div class="bar-row"><div class="bar-label">'+label+'</div>' +
@@ -1423,8 +1424,8 @@ function renderChartAndRun(){
       (onRoute>0 ? '<div style="font-size:11px;color:var(--accent);margin-top:6px;display:flex;align-items:center;gap:5px;">'+icon('clock')+onRoute+' bus'+(onRoute>1?'es':'')+' out on a live trip right now - excluded from these counts until back in the shed</div>' : '') +
     '</div>' +
     '<div class="runbox">' + icon('spark') +
-      '<div style="font-size:13px;color:#334155;">Match '+routes.length+' routes against '+fleet.filter(isAvailableNow).length+' buses and '+drivers.filter(function(d){return d.status==='Available';}).length+' drivers for <b style="color:var(--accent);">'+slot.label+' ('+slot.cat+')</b></div>' +
-      '<button class="btn-primary" id="runBtn">Run allocation</button>' +
+      '<div style="font-size:13px;color:#334155;">Match '+routes.length+' routes against '+readyCount+' buses with Charge + Wash complete and '+drivers.filter(function(d){return d.status==='Available';}).length+' drivers for <b style="color:var(--accent);">'+slot.label+' ('+slot.cat+')</b></div>' +
+      '<button class="btn-primary" id="runBtn"'+(readyCount?'':' disabled style="opacity:.5;cursor:not-allowed;"')+'>'+(readyCount?'Run allocation':'Complete Charge + Wash first')+'</button>' +
     '</div>' +
   '</div>';
 }
