@@ -1003,6 +1003,12 @@ function renderFixedRouteScheduler(){
   var condition = selectedBus.maintenance ? 'Maintenance hold' : selectedBus.faultRisk>0 ? 'Condition watch: '+selectedBus.faultRisk+' sensor risk' : selectedBus.oilCheck&&selectedBus.engineCheck ? 'Operational condition clear' : 'Sensor check pending';
   var alternates = fleet.map(function(bus){return {bus:bus, fit:busFitReason(bus,route,allowed)};}).filter(function(item){return item.fit.fits && item.bus.id!==selectedBus.id;}).sort(function(a,b){return effectiveRange(b.bus)-effectiveRange(a.bus);}).slice(0,3);
   var alternateRoutes = routes.map(function(item){return {route:item, fit:busFitReason(selectedBus,item,MATCH_TABLE[item.category][slot.cat])};}).filter(function(item){return item.route.id!==route.id && item.fit.fits;}).slice(0,2);
+  var routeAlternates = routes.map(function(item){
+    var routeAllowed = MATCH_TABLE[item.category][slot.cat];
+    var bus = fleet.filter(function(candidate){return isAvailableNow(candidate) && routeAllowed.indexOf(rangeCategory(effectiveRange(candidate)))!==-1 && canServeRoute(candidate,item);})
+      .sort(function(a,b){return matchScore(b,item)-matchScore(a,item);})[0];
+    return {route:item,bus:bus};
+  }).filter(function(item){return item.route.id!==route.id && item.bus;}).slice(0,2);
   var statusHtml = fit.fits ? '<div class="fixed-status ok">'+icon('check')+' <b>'+selectedBus.id+' is available for '+route.code+'</b> - '+fit.why+'. Driver: '+selectedDriver.name+' ('+selectedDriver.grade+'). Bus condition: '+condition+'.</div>' : '<div class="fixed-status bad">'+icon('warn')+' <b>'+selectedBus.id+' is not available for '+route.code+'</b> - '+fit.why+'. Choose an alternate bus or select a route this bus can serve.</div>';
   var alternateHtml = alternates.length ? '<div class="fixed-suggestion"><b>Recommended alternate buses for '+route.code+':</b></div><div class="fixed-alternate-list">'+alternates.map(function(item){
     var spare = Math.round((effectiveRange(item.bus)-route.reqRange)*10)/10;
@@ -1010,6 +1016,12 @@ function renderFixedRouteScheduler(){
     return '<div class="fixed-alternate"><div class="fixed-alternate-detail"><b>'+item.bus.id+'</b> &middot; '+item.bus.plate+' &middot; '+item.bus.soc+'% battery &middot; '+effectiveRange(item.bus)+' km effective range<br><span>Why use it: '+reason+'. It gives <b>+'+spare+' km spare range</b>, reducing the risk of a mid-route charging stop.</span></div><button type="button" class="fixed-alt-bus" data-bus="'+item.bus.id+'">Assign this bus</button></div>';
   }).join('')+'</div>' : '<div class="fixed-status bad" style="margin-top:8px;">No alternate bus currently clears '+route.code+'. Keep the route on hold until a bus completes the required checks or returns to the depot.</div>';
   var routeSuggestionHtml = alternateRoutes.length ? '<div class="fixed-suggestion"><b>Alternate route for this bus:</b>'+alternateRoutes.map(function(item){return '<button type="button" class="fixed-alt-route" data-route="'+item.route.id+'">'+item.route.code+'</button>';}).join('')+'</div>' : '';
+  if(!fit.fits && routeAlternates.length){
+    routeSuggestionHtml += '<div class="fixed-suggestion"><b>Route alternatives with current depot availability:</b></div><div class="fixed-alternate-list">'+routeAlternates.map(function(item){
+      var spare = Math.round((effectiveRange(item.bus)-item.route.reqRange)*10)/10;
+      return '<div class="fixed-alternate"><div class="fixed-alternate-detail"><b>'+item.route.code+'</b> &middot; '+item.route.name+'<br><span>Covered by <b>'+item.bus.id+'</b> ('+item.bus.plate+') with '+effectiveRange(item.bus)+' km effective range and <b>+'+spare+' km spare</b>.</span></div><button type="button" class="fixed-alt-route" data-route="'+item.route.id+'">Use this route</button></div>';
+    }).join('')+'</div>';
+  }
   var savedHtml = fixedSchedule.savedAt ? '<div class="fixed-saved">'+icon('check')+' Fixed schedule saved: <b>'+route.code+'</b> &middot; <b>'+selectedBus.id+'</b> &middot; '+selectedDriver.name+' &middot; Depot out confirmed at '+fixedSchedule.savedAt+'.</div>' : '';
   var actionText = fixedScheduleMessage ? '<span style="color:var(--red);font-size:11px;">'+fixedScheduleMessage+'</span>' : '<span style="color:var(--muted);font-size:11px;">Depot out is required before saving a departure.</span>';
   return '<div class="section" style="margin-top:18px;"><div class="fixed-schedule">'+
