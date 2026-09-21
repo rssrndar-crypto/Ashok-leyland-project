@@ -195,6 +195,26 @@
   .charge-state{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;}
   .search-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
   .search-row input{flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:8px 9px;font:12px inherit;}
+  .fixed-schedule{border:1px solid #bfd5e5;border-radius:12px;background:linear-gradient(135deg,#f8fcff,#eef8f7);padding:16px;box-shadow:0 8px 22px rgba(27,52,78,.05);}
+  .fixed-schedule-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:13px;}
+  .fixed-schedule-title{font-size:14px;font-weight:800;color:#102f50;display:flex;align-items:center;gap:7px;}
+  .fixed-schedule-copy{font-size:11px;color:var(--muted);line-height:1.45;margin-top:4px;max-width:760px;}
+  .fixed-schedule-grid{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:9px;}
+  .fixed-field{display:flex;flex-direction:column;gap:5px;font-size:10.5px;color:var(--muted);font-weight:700;}
+  .fixed-field select{width:100%;font-family:inherit;font-size:12px;padding:8px 9px;border-radius:6px;}
+  .fixed-status{margin-top:11px;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.45;}
+  .fixed-status.ok{background:var(--green-dim);border:1px solid var(--green-bd);color:#11624f;}
+  .fixed-status.bad{background:var(--red-dim);border:1px solid var(--red-bd);color:#7a3030;}
+  .fixed-schedule-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
+  .depot-toggle{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:#fff;}
+  .depot-toggle button{border:0;border-right:1px solid var(--border);background:#fff;color:var(--muted);padding:7px 10px;font:11px inherit;cursor:pointer;}
+  .depot-toggle button:last-child{border-right:0;}
+  .depot-toggle button.active{background:#e8f1ff;color:#174ea6;font-weight:700;}
+  .fixed-suggestion{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:11px;}
+  .fixed-suggestion button{border:1px solid #bfd4f4;border-radius:6px;background:#fff;color:#174ea6;padding:5px 8px;font:11px inherit;cursor:pointer;}
+  .fixed-saved{margin-top:10px;padding:9px 11px;border-left:3px solid var(--green);background:#fff;border-radius:6px;font-size:11px;color:#31536b;}
+  @media(max-width:1000px){.fixed-schedule-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}}
+  @media(max-width:520px){.fixed-schedule-grid{grid-template-columns:1fr;}}
   @media(max-width:760px){.cockpit-hero,.cockpit-grid{grid-template-columns:1fr;}.role-grid{grid-template-columns:repeat(2,1fr);}.cockpit-title{font-size:22px;}}
 </style>
 </head>
@@ -497,6 +517,8 @@ var washStartedAt = null;
 var washScheduledAt = null;
 var chargeCompletedAt = null;
 var vehicleLookupMessage = '';
+var fixedSchedule = {routeId:'r2', busId:null, driverId:null, depotOut:false, savedAt:null};
+var fixedScheduleMessage = '';
 
 var OFFLINE_MODE = true;
 var liveOn = false, liveTimer = null, lastSync = null, feedLog = [];
@@ -940,8 +962,40 @@ function renderSimpleScheduleAssignment(){
 }
 
 function renderWorkspaceContent(){
-  if(workspaceTab==='schedule') return renderSlotsSection()+renderScheduleChecks()+renderAllocationScreen()+renderChartAndRun()+renderResult();
+  if(workspaceTab==='schedule') return renderSlotsSection()+renderFixedRouteScheduler()+renderScheduleChecks()+renderAllocationScreen()+renderChartAndRun()+renderResult();
   return renderAllocationScreen();
+}
+
+function renderFixedRouteScheduler(){
+  var route = routes.filter(function(r){return r.id===fixedSchedule.routeId;})[0] || routes[0];
+  var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+  var allowed = MATCH_TABLE[route.category][slot.cat];
+  var selectedBus = fleet.filter(function(b){return b.id===fixedSchedule.busId;})[0];
+  if(!selectedBus){ selectedBus = fleet.filter(isAvailableNow)[0] || fleet[0]; fixedSchedule.busId = selectedBus.id; }
+  var selectedDriver = drivers.filter(function(d){return d.id===fixedSchedule.driverId;})[0];
+  if(!selectedDriver){ selectedDriver = drivers.filter(function(d){return d.status==='Available' && DRIVER_MATCH[route.category].indexOf(d.grade)!==-1;})[0] || drivers[0]; fixedSchedule.driverId = selectedDriver.id; }
+  var fit = busFitReason(selectedBus, route, allowed);
+  var busOptions = fleet.map(function(bus){
+    var check = busFitReason(bus, route, allowed);
+    var label = bus.id+' - '+bus.plate+' | '+(check.fits ? 'Available' : check.why);
+    return '<option value="'+bus.id+'"'+(bus.id===selectedBus.id?' selected':'')+'>'+label+'</option>';
+  }).join('');
+  var routeOptions = routes.map(function(item){return '<option value="'+item.id+'"'+(item.id===route.id?' selected':'')+'>'+item.code+' - '+item.name+'</option>';}).join('');
+  var slotOptions = TIME_SLOTS.map(function(item){return '<option value="'+item.id+'"'+(item.id===slotId?' selected':'')+'>'+item.label+' | '+item.cat+'</option>';}).join('');
+  var driverOptions = drivers.map(function(driver){return '<option value="'+driver.id+'"'+(driver.id===selectedDriver.id?' selected':'')+'>'+driver.id+' - '+driver.name+' | '+driver.grade+' | '+driver.status+'</option>';}).join('');
+  var condition = selectedBus.maintenance ? 'Maintenance hold' : selectedBus.faultRisk>0 ? 'Condition watch: '+selectedBus.faultRisk+' sensor risk' : selectedBus.oilCheck&&selectedBus.engineCheck ? 'Operational condition clear' : 'Sensor check pending';
+  var alternates = fleet.map(function(bus){return {bus:bus, fit:busFitReason(bus,route,allowed)};}).filter(function(item){return item.fit.fits && item.bus.id!==selectedBus.id;}).sort(function(a,b){return effectiveRange(b.bus)-effectiveRange(a.bus);}).slice(0,3);
+  var alternateRoutes = routes.map(function(item){return {route:item, fit:busFitReason(selectedBus,item,MATCH_TABLE[item.category][slot.cat])};}).filter(function(item){return item.route.id!==route.id && item.fit.fits;}).slice(0,2);
+  var statusHtml = fit.fits ? '<div class="fixed-status ok">'+icon('check')+' <b>'+selectedBus.id+' is available for '+route.code+'</b> - '+fit.why+'. Driver: '+selectedDriver.name+' ('+selectedDriver.grade+'). Bus condition: '+condition+'.</div>' : '<div class="fixed-status bad">'+icon('warn')+' <b>'+selectedBus.id+' is not available for '+route.code+'</b> - '+fit.why+'. Choose an alternate bus or select a route this bus can serve.</div>';
+  var alternateHtml = alternates.length ? '<div class="fixed-suggestion"><b>Suggest another bus:</b>'+alternates.map(function(item){return '<button type="button" class="fixed-alt-bus" data-bus="'+item.bus.id+'">'+item.bus.id+' ('+effectiveRange(item.bus)+' km)</button>';}).join('')+'</div>' : '';
+  var routeSuggestionHtml = alternateRoutes.length ? '<div class="fixed-suggestion"><b>Alternate route for this bus:</b>'+alternateRoutes.map(function(item){return '<button type="button" class="fixed-alt-route" data-route="'+item.route.id+'">'+item.route.code+'</button>';}).join('')+'</div>' : '';
+  var savedHtml = fixedSchedule.savedAt ? '<div class="fixed-saved">'+icon('check')+' Fixed schedule saved: <b>'+route.code+'</b> &middot; <b>'+selectedBus.id+'</b> &middot; '+selectedDriver.name+' &middot; Depot out confirmed at '+fixedSchedule.savedAt+'.</div>' : '';
+  var actionText = fixedScheduleMessage ? '<span style="color:var(--red);font-size:11px;">'+fixedScheduleMessage+'</span>' : '<span style="color:var(--muted);font-size:11px;">Depot out is required before saving a departure.</span>';
+  return '<div class="section" style="margin-top:18px;"><div class="fixed-schedule">'+
+    '<div class="fixed-schedule-head"><div><div class="fixed-schedule-title">'+icon('clipboard')+'Fixed route bus schedule</div><div class="fixed-schedule-copy">Map one bus and one qualified driver to a fixed route and time. Availability uses live depot status, charge, wash, checklist, sensor, maintenance, and effective range.</div></div><span class="pill pill-b">'+slot.label+' &middot; '+slot.cat+'</span></div>'+
+    '<div class="fixed-schedule-grid"><label class="fixed-field">Schedule time<select id="fixedSlotSel">'+slotOptions+'</select></label><label class="fixed-field">Fixed route<select id="fixedRouteSel">'+routeOptions+'</select></label><label class="fixed-field">Scheduled bus<select id="fixedBusSel">'+busOptions+'</select></label><label class="fixed-field">Driver<select id="fixedDriverSel">'+driverOptions+'</select></label><div class="fixed-field">Bus condition<div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 9px;color:var(--text);font-weight:600;">'+condition+'</div></div></div>'+statusHtml+alternateHtml+routeSuggestionHtml+
+    '<div class="fixed-schedule-actions"><span style="font-size:10.5px;color:var(--muted);font-weight:700;">Depot movement</span><div class="depot-toggle"><button type="button" class="fixed-depot-btn '+(!fixedSchedule.depotOut?'active':'')+'" data-depot="in">Depot in</button><button type="button" class="fixed-depot-btn '+(fixedSchedule.depotOut?'active':'')+'" data-depot="out">Depot out</button></div><button type="button" class="btn-primary" id="saveFixedSchedule" style="padding:8px 13px;">'+icon('check')+' Save fixed schedule</button>'+actionText+'</div>'+savedHtml+
+  '</div></div>';
 }
 
 function renderFleetReadiness(){
@@ -1646,7 +1700,7 @@ function bindEvents(){
     logEvent('One-click schedule created for '+TIME_SLOTS.filter(function(s){return s.id===slotId;})[0].label+' - '+result.assignments.length+' buses allocated'); workspaceTab = 'schedule'; cockpitPage = 'dashboard'; render();
   };
   var resetBtn = document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); saveFleetState(); drivers = makeDrivers(); result = null; daySummary = null; decisionReviewAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
+  if(resetBtn) resetBtn.onclick = function(){ fleet = makeFleet(); saveFleetState(); drivers = makeDrivers(); result = null; daySummary = null; decisionReviewAt = null; feedLog=[]; trips={}; checklistState={}; defectLog=[]; defectSeq=1; unwantedChargeEvents=0; unwantedChargesByRoute={}; washBusId=null; washStartedAt=null; washScheduledAt=null; chargeCompletedAt=null; vehicleLookupMessage=''; fixedSchedule={routeId:'r2',busId:null,driverId:null,depotOut:false,savedAt:null}; fixedScheduleMessage=''; verificationState={depot:false,city:false}; customDefectCategories=['Safety','Cleaning','Electrical','Battery','Mechanical']; busSearch=''; scheduleDate=new Date().toISOString().slice(0,10); seedDefects(); render(); };
   var cloudAnalyzeBtn = document.getElementById('cloudAnalyzeBtn');
   if(cloudAnalyzeBtn) cloudAnalyzeBtn.onclick = function(){ decisionReviewAt = new Date(); logEvent('Decision review refreshed - fleet risks, route coverage, defects, and driver capacity analyzed'); render(); };
   var decisionDispatchBtn = document.getElementById('decisionDispatchBtn');
@@ -1681,6 +1735,40 @@ function bindEvents(){
   }
   var bbRouteSel = document.getElementById('bbRouteSel');
   if(bbRouteSel) bbRouteSel.onchange = function(){ bestBusRouteId = this.value; render(); };
+  var fixedRouteSel = document.getElementById('fixedRouteSel');
+  if(fixedRouteSel) fixedRouteSel.onchange = function(){ fixedSchedule.routeId = this.value; fixedSchedule.busId = null; fixedSchedule.driverId = null; fixedScheduleMessage = ''; fixedSchedule.savedAt = null; render(); };
+  var fixedSlotSel = document.getElementById('fixedSlotSel');
+  if(fixedSlotSel) fixedSlotSel.onchange = function(){ slotId = this.value; fixedScheduleMessage = ''; fixedSchedule.savedAt = null; result = null; render(); };
+  var fixedBusSel = document.getElementById('fixedBusSel');
+  if(fixedBusSel) fixedBusSel.onchange = function(){ fixedSchedule.busId = this.value; fixedSchedule.savedAt = null; fixedScheduleMessage = ''; render(); };
+  var fixedDriverSel = document.getElementById('fixedDriverSel');
+  if(fixedDriverSel) fixedDriverSel.onchange = function(){ fixedSchedule.driverId = this.value; fixedSchedule.savedAt = null; fixedScheduleMessage = ''; render(); };
+  document.querySelectorAll('.fixed-alt-bus').forEach(function(el){ el.onclick = function(){ fixedSchedule.busId = el.getAttribute('data-bus'); fixedSchedule.savedAt = null; fixedScheduleMessage = ''; render(); }; });
+  document.querySelectorAll('.fixed-alt-route').forEach(function(el){ el.onclick = function(){ fixedSchedule.routeId = el.getAttribute('data-route'); fixedSchedule.savedAt = null; fixedScheduleMessage = ''; render(); }; });
+  document.querySelectorAll('.fixed-depot-btn').forEach(function(el){ el.onclick = function(){
+    var movement = el.getAttribute('data-depot');
+    fixedSchedule.depotOut = movement==='out'; fixedScheduleMessage = '';
+    if(movement==='in'){
+      var bus = fleet.filter(function(b){return b.id===fixedSchedule.busId;})[0];
+      var trip = bus && trips[bus.id];
+      if(trip && !trip.done){ trip.done = true; trip.progress = 100; trip.speed = 0; logEvent(bus.id+' marked back at the depot from fixed schedule'); }
+      fixedSchedule.savedAt = null;
+    }
+    render();
+  }; });
+  var saveFixedSchedule = document.getElementById('saveFixedSchedule');
+  if(saveFixedSchedule) saveFixedSchedule.onclick = function(){
+    var route = routes.filter(function(r){return r.id===fixedSchedule.routeId;})[0];
+    var bus = fleet.filter(function(b){return b.id===fixedSchedule.busId;})[0];
+    var driver = drivers.filter(function(d){return d.id===fixedSchedule.driverId;})[0];
+    var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
+    var fit = busFitReason(bus, route, MATCH_TABLE[route.category][slot.cat]);
+    if(!fit.fits){ fixedScheduleMessage = 'Cannot save: '+bus.id+' is not available because '+fit.why+'.'; render(); return; }
+    if(!driver || driver.status!=='Available' || DRIVER_MATCH[route.category].indexOf(driver.grade)===-1){ fixedScheduleMessage = 'Cannot save: select an available '+DRIVER_MATCH[route.category].join(' or ')+' driver.'; render(); return; }
+    if(!fixedSchedule.depotOut){ fixedScheduleMessage = 'Cannot save: confirm Depot out after the driver receives the bus.'; render(); return; }
+    trips[bus.id] = {routeCode:route.code, reqRange:route.reqRange, progress:0, speed:0, cabinTemp:24, tires:'OK', harshEvents:0, done:false};
+    fixedSchedule.savedAt = nowStr(); fixedScheduleMessage = ''; logEvent('Fixed schedule saved - '+route.code+' assigned to '+bus.id+' with '+driver.id+' - depot out'); render();
+  };
   var busSearchInput = document.getElementById('busSearchInput');
   if(busSearchInput) busSearchInput.onchange = function(){ busSearch = this.value.trim(); render(); };
   var depotNoInput = document.getElementById('depotNoInput');
