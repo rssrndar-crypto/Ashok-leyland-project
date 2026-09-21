@@ -205,6 +205,7 @@
   .fixed-status{margin-top:11px;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.45;}
   .fixed-status.ok{background:var(--green-dim);border:1px solid var(--green-bd);color:#11624f;}
   .fixed-status.bad{background:var(--red-dim);border:1px solid var(--red-bd);color:#7a3030;}
+  .fixed-status.bad b{color:var(--red);}
   .fixed-schedule-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
   .depot-toggle{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:#fff;}
   .depot-toggle button{border:0;border-right:1px solid var(--border);background:#fff;color:var(--muted);padding:7px 10px;font:11px inherit;cursor:pointer;}
@@ -999,7 +1000,7 @@ function renderFixedRouteScheduler(){
   var alternates = fleet.map(function(bus){return {bus:bus, fit:busFitReason(bus,route,allowed)};}).filter(function(item){return item.fit.fits && item.bus.id!==selectedBus.id;}).sort(function(a,b){return effectiveRange(b.bus)-effectiveRange(a.bus);}).slice(0,3);
   var alternateRoutes = routes.map(function(item){return {route:item, fit:busFitReason(selectedBus,item,MATCH_TABLE[item.category][slot.cat])};}).filter(function(item){return item.route.id!==route.id && item.fit.fits;}).slice(0,2);
   var statusHtml = fit.fits ? '<div class="fixed-status ok">'+icon('check')+' <b>'+selectedBus.id+' is available for '+route.code+'</b> - '+fit.why+'. Driver: '+selectedDriver.name+' ('+selectedDriver.grade+'). Bus condition: '+condition+'.</div>' : '<div class="fixed-status bad">'+icon('warn')+' <b>'+selectedBus.id+' is not available for '+route.code+'</b> - '+fit.why+'. Choose an alternate bus or select a route this bus can serve.</div>';
-  var alternateHtml = alternates.length ? '<div class="fixed-suggestion"><b>Suggest another bus:</b>'+alternates.map(function(item){return '<button type="button" class="fixed-alt-bus" data-bus="'+item.bus.id+'">'+item.bus.id+' ('+effectiveRange(item.bus)+' km)</button>';}).join('')+'</div>' : '';
+  var alternateHtml = alternates.length ? '<div class="fixed-suggestion"><b>Assign another available bus:</b>'+alternates.map(function(item){return '<button type="button" class="fixed-alt-bus" data-bus="'+item.bus.id+'">Assign '+item.bus.id+' ('+effectiveRange(item.bus)+' km)</button>';}).join('')+'</div>' : '';
   var routeSuggestionHtml = alternateRoutes.length ? '<div class="fixed-suggestion"><b>Alternate route for this bus:</b>'+alternateRoutes.map(function(item){return '<button type="button" class="fixed-alt-route" data-route="'+item.route.id+'">'+item.route.code+'</button>';}).join('')+'</div>' : '';
   var savedHtml = fixedSchedule.savedAt ? '<div class="fixed-saved">'+icon('check')+' Fixed schedule saved: <b>'+route.code+'</b> &middot; <b>'+selectedBus.id+'</b> &middot; '+selectedDriver.name+' &middot; Depot out confirmed at '+fixedSchedule.savedAt+'.</div>' : '';
   var actionText = fixedScheduleMessage ? '<span style="color:var(--red);font-size:11px;">'+fixedScheduleMessage+'</span>' : '<span style="color:var(--muted);font-size:11px;">Depot out is required before saving a departure.</span>';
