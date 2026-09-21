@@ -966,6 +966,18 @@ function renderWorkspaceContent(){
   return renderAllocationScreen();
 }
 
+function loadFixedScheduleSample(){
+  var sampleSlot = TIME_SLOTS.filter(function(s){return s.id==='t2';})[0];
+  var sampleRoute = routes.filter(function(r){return r.id==='r2';})[0];
+  var allowed = MATCH_TABLE[sampleRoute.category][sampleSlot.cat];
+  var sampleBus = fleet.filter(function(bus){return isAvailableNow(bus) && allowed.indexOf(rangeCategory(effectiveRange(bus)))!==-1 && canServeRoute(bus,sampleRoute);})
+    .sort(function(a,b){return matchScore(b,sampleRoute)-matchScore(a,sampleRoute);})[0];
+  var sampleDriver = drivers.filter(function(driver){return driver.status==='Available' && DRIVER_MATCH[sampleRoute.category].indexOf(driver.grade)!==-1;})
+    .sort(function(a,b){return DRV_RANK[b.grade]-DRV_RANK[a.grade];})[0];
+  if(!sampleBus || !sampleDriver){ fixedScheduleMessage = 'No live sample is available right now. Complete charge, wash, and driver release checks first.'; render(); return; }
+  slotId = sampleSlot.id; fixedSchedule.routeId = sampleRoute.id; fixedSchedule.busId = sampleBus.id; fixedSchedule.driverId = sampleDriver.id; fixedSchedule.depotOut = false; fixedSchedule.savedAt = null; fixedScheduleMessage = 'Live sample loaded from the current depot pool. Confirm Depot out, then save it.'; result = null; render();
+}
+
 function renderFixedRouteScheduler(){
   var route = routes.filter(function(r){return r.id===fixedSchedule.routeId;})[0] || routes[0];
   var slot = TIME_SLOTS.filter(function(s){return s.id===slotId;})[0];
@@ -992,7 +1004,7 @@ function renderFixedRouteScheduler(){
   var savedHtml = fixedSchedule.savedAt ? '<div class="fixed-saved">'+icon('check')+' Fixed schedule saved: <b>'+route.code+'</b> &middot; <b>'+selectedBus.id+'</b> &middot; '+selectedDriver.name+' &middot; Depot out confirmed at '+fixedSchedule.savedAt+'.</div>' : '';
   var actionText = fixedScheduleMessage ? '<span style="color:var(--red);font-size:11px;">'+fixedScheduleMessage+'</span>' : '<span style="color:var(--muted);font-size:11px;">Depot out is required before saving a departure.</span>';
   return '<div class="section" style="margin-top:18px;"><div class="fixed-schedule">'+
-    '<div class="fixed-schedule-head"><div><div class="fixed-schedule-title">'+icon('clipboard')+'Fixed route bus schedule</div><div class="fixed-schedule-copy">Map one bus and one qualified driver to a fixed route and time. Availability uses live depot status, charge, wash, checklist, sensor, maintenance, and effective range.</div></div><span class="pill pill-b">'+slot.label+' &middot; '+slot.cat+'</span></div>'+
+    '<div class="fixed-schedule-head"><div><div class="fixed-schedule-title">'+icon('clipboard')+'Fixed route bus schedule</div><div class="fixed-schedule-copy">Map one bus and one qualified driver to a fixed route and time. Availability uses live depot status, charge, wash, checklist, sensor, maintenance, and effective range.</div></div><div style="display:flex;align-items:center;gap:8px;"><button type="button" class="btn-secondary" id="loadFixedSample">'+icon('spark')+' Load live sample</button><span class="pill pill-b">'+slot.label+' &middot; '+slot.cat+'</span></div></div>'+
     '<div class="fixed-schedule-grid"><label class="fixed-field">Schedule time<select id="fixedSlotSel">'+slotOptions+'</select></label><label class="fixed-field">Fixed route<select id="fixedRouteSel">'+routeOptions+'</select></label><label class="fixed-field">Scheduled bus<select id="fixedBusSel">'+busOptions+'</select></label><label class="fixed-field">Driver<select id="fixedDriverSel">'+driverOptions+'</select></label><div class="fixed-field">Bus condition<div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 9px;color:var(--text);font-weight:600;">'+condition+'</div></div></div>'+statusHtml+alternateHtml+routeSuggestionHtml+
     '<div class="fixed-schedule-actions"><span style="font-size:10.5px;color:var(--muted);font-weight:700;">Depot movement</span><div class="depot-toggle"><button type="button" class="fixed-depot-btn '+(!fixedSchedule.depotOut?'active':'')+'" data-depot="in">Depot in</button><button type="button" class="fixed-depot-btn '+(fixedSchedule.depotOut?'active':'')+'" data-depot="out">Depot out</button></div><button type="button" class="btn-primary" id="saveFixedSchedule" style="padding:8px 13px;">'+icon('check')+' Save fixed schedule</button>'+actionText+'</div>'+savedHtml+
   '</div></div>';
@@ -1737,6 +1749,8 @@ function bindEvents(){
   if(bbRouteSel) bbRouteSel.onchange = function(){ bestBusRouteId = this.value; render(); };
   var fixedRouteSel = document.getElementById('fixedRouteSel');
   if(fixedRouteSel) fixedRouteSel.onchange = function(){ fixedSchedule.routeId = this.value; fixedSchedule.busId = null; fixedSchedule.driverId = null; fixedScheduleMessage = ''; fixedSchedule.savedAt = null; render(); };
+  var loadFixedSample = document.getElementById('loadFixedSample');
+  if(loadFixedSample) loadFixedSample.onclick = loadFixedScheduleSample;
   var fixedSlotSel = document.getElementById('fixedSlotSel');
   if(fixedSlotSel) fixedSlotSel.onchange = function(){ slotId = this.value; fixedScheduleMessage = ''; fixedSchedule.savedAt = null; result = null; render(); };
   var fixedBusSel = document.getElementById('fixedBusSel');
